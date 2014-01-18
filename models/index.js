@@ -29,15 +29,31 @@ if (!global.hasOwnProperty('db')) {
   global.db = {
     Sequelize: Sequelize,
     sequelize: sequelize,
-    User:      sequelize.import(__dirname + '/user')
- 
-    // add your other models here
+    User:      sequelize.import(__dirname + '/user'),
+    Room:      sequelize.import(__dirname + '/room'),
+    Player:    sequelize.import(__dirname + '/player'),
+    Payout:    sequelize.import(__dirname + '/payout'),
+    Currency:  sequelize.import(__dirname + '/currency')
   }
  
   /*
     Associations can be defined here. E.g. like this:
     global.db.User.hasMany(global.db.SomethingElse)
   */
+  global.db.Room.hasMany(global.db.Player);
+  global.db.Player.belongsTo(global.db.Room);
+
+  global.db.User.hasMany(global.db.Player);
+  global.db.Player.belongsTo(global.db.User);
+
+  global.db.User.hasMany(global.db.Payout);
+  global.db.Payout.belongsTo(global.db.User);
+
+  global.db.Currency.hasMany(global.db.Payout);
+  global.db.Payout.belongsTo(global.db.Currency);
+
+  global.db.Currency.hasMany(global.db.Room);
+  global.db.Room.belongsTo(global.db.Currency);
 }
 
  
