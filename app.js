@@ -8,7 +8,6 @@ var routes = require('./routes');
 var user = require('./routes/user');
 var http = require('http');
 var path = require('path');
-var mongoose = require('mongoose');
 
 var app = express();
 
@@ -34,14 +33,4 @@ app.get('/users', user.list);
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
-});
-
-
-var uristring = process.env.MONGOLAB_URI || process.env.MONGOHQ_URL || 'mongodb://localhost/cryptopoker'
-mongoose.connect(uristring, function(err, res) {
-    if (err) {
-        console.log('ERROR connecting to: ' + uristring + '. ' + err);
-    } else {
-        console.log('Succeeded connected to: ' + uristring);
-    }
 });
