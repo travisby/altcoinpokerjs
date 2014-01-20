@@ -9,6 +9,7 @@ var path = require('path');
 var db = require('./models');
 var socketio = require('socket.io');
 var fs = require('fs');
+var game = require('./game.js');
 
 var app = express();
 
@@ -47,6 +48,8 @@ db.sequelize.sync({}).complete(
             } else {
                 server = http.createServer(app);
                 socketio = socketio.listen(server);
+                // add events to socketio
+                game.game(socketio);
                 server.listen(app.get('port'), function () {
                   console.log('Express server listening on port ' + app.get('port'));
                 });
