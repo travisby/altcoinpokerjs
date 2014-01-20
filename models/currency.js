@@ -3,7 +3,7 @@ module.exports = function(sequelize, DataTypes) {
             "Currency",
             {
                 name: DataTypes.STRING(10),
-                symbol: DataTypes.STRING(3)
+                symbol: DataTypes.STRING(4)
             }
     );
 };
