@@ -6,3 +6,21 @@ block content
   ul
   each room in rooms
     li a(href=/poker?id=#{room.id}) #{room.name}
+
+  form(name="newPokerGame", action="/poker/new", method="post")
+    label(for="name") Name:
+    input(type="text", name="name")
+    label(for="coin") Coin:
+    select(name="currencyID")
+        each coin in coins
+            option(value="#{coin.id}") #{coin.name}
+    label(for="buyin") Buyin:
+    input(type="text", name="buyin")
+    input(type="submit", name="Create new Room")
+
+  form(name="newCoin", action="/currency/new", method="post")
+    label(for="name") Name:
+    input(type="text", name="name")
+    label(for="coin") Coin:
+    input(type="text", name="symbol")
+    input(type="submit", name="Create new Currency")
