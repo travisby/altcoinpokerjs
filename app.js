@@ -4,12 +4,11 @@
  */
 
 var express = require('express');
-var routes = require('./routes');
-var user = require('./routes/user');
 var http = require('http');
 var path = require('path');
 var db = require('./models');
 var socketio = require('socket.io');
+var fs = require('fs');
 
 var app = express();
 
@@ -30,8 +29,16 @@ if ('development' == app.get('env')) {
   app.use(express.errorHandler());
 }
 
-app.get('/', routes.index);
-app.get('/users', user.list);
+// dynamic controllers
+fs.readdirSync('./controllers')
+.forEach(
+    function (file) {
+        if(file.substr(-3) == '.js') {
+            route = require('./controllers/' + file);
+            route.controller(app);
+        }
+    }
+);
 
 db.sequelize.sync({force: true}).complete(
         function (err) {
