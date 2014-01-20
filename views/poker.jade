@@ -1,6 +1,7 @@
 extends layout
 block content
   script(type='text/javascript').
-    var room = {room};
-    console.log({room.id});
+    var roomID = #{room.id};
+    var roomName = "#{room.name}";
+  script(src='/socket.io/socket.io.js')
   script(src='/javascripts/poker.js')

@@ -5,7 +5,8 @@ block content
   p Welcome to #{title}
   ul
   each room in rooms
-    li a(href=/poker?id=#{room.id}) #{room.name}
+    li
+      a(href="/poker/#{room.id}") #{room.name}
 
   form(name="newPokerGame", action="/poker/new", method="post")
     label(for="name") Name:

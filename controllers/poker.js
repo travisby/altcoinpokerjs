@@ -2,7 +2,7 @@ var db = require('../models/');
 module.exports.controller = function(app) {
     // routes
     app.get(
-        '/poker',
+        '/poker/:id',
         function (req, res) {
             db.Room.find(req.params.id)
             .success(
