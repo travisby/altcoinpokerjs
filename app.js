@@ -40,7 +40,7 @@ fs.readdirSync('./controllers')
     }
 );
 
-db.sequelize.sync({force: true}).complete(
+db.sequelize.sync({}).complete(
         function (err) {
             if (err) {
                 throw err;
