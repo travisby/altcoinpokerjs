@@ -43,11 +43,11 @@ module.exports.Card.DIAMONDS = 'd';
 module.exports.Card.CLUBS = 'c';
 module.exports.Card.SPADES = 's';
 module.exports.Card.HEARTS = 'h';
-module.exports.Card.JACK = 11;
+module.exports.Card.JACK = 11
 module.exports.Card.QUEEN = 12;
 module.exports.Card.KING = 13;
 module.exports.Card.ACE = 14;
-module.exports.Card.RANKS = [2, 3, 4, 5, 6, 7, 8, 9, 10, module.exports.Card.JACK, module.exports.Card.QUEEN, module.exports.Card.KING, module.exports.Card.ACE];
+module.exports.Card.RANKS = [2, 3, 4, 5, 6, 7, 8, 9, 'A', module.exports.Card.JACK, module.exports.Card.QUEEN, module.exports.Card.KING, module.exports.Card.ACE];
 module.exports.Card.SUITS = [module.exports.Card.HEARTS, module.exports.Card.SPADES, module.exports.Card.CLUBS, module.exports.Card.DIAMONDS];
 module.exports.Card.isActuallyACard = function (card) {
     return card.hasOwnProperty('rank') && card.hasOwnProperty('suit');
@@ -77,6 +77,11 @@ module.exports.Deck.prototype.toJSON = function () {
         }
     );
 };
+module.exports.Deck.prototype.toString = function () {
+    return this.cards.join(',');
+}
+module.exports.Deck.prototype.shuffle = function () {
+}
 
 module.exports.PokerDeck = function() {
     // have a place to store all 52 cards

@@ -1,4 +1,5 @@
 var db = require('../models/');
+var game = require('../game.js');
 module.exports.controller = function(app) {
     // routes
     app.get(
@@ -24,10 +25,13 @@ module.exports.controller = function(app) {
             db.Currency.find(req.body.currencyID)
             .success(
                 function (currency) {
+                    var deck = new game.PokerDeck();
+                    deck.shuffle();
                     db.Room.create(
                         {
                             name: req.body.name,
-                            buyin: req.body.buyin
+                            buyin: req.body.buyin,
+                            deck: deck
                         }
                     ).complete(
                         function (err, room) {
