@@ -81,6 +81,13 @@ module.exports.Deck.prototype.toString = function () {
     return this.cards.join(',');
 }
 module.exports.Deck.prototype.shuffle = function () {
+    // Fischer-Yates Shuffle
+    for (var i = this.cards.length -1; i--; i <= 1) {
+        var j = Math.round(Math.random() * i);
+        var temp = this.cards[i];
+        this.cards[i] = this.cards[j];
+        this.cards[j] = temp;
+    }
 }
 
 module.exports.PokerDeck = function() {
