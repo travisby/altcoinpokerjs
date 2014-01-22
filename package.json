@@ -9,6 +9,8 @@
     "express": "3.4.8",
     "jade": "*",
     "sqlite3": "~2.2.0",
-    "socket.io": "~0.9.16"
+    "socket.io": "~0.9.16",
+    "cards": "~0.1.0",
+    "sequelize": "~1.7.0-rc2"
   }
 }
