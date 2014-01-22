@@ -13,7 +13,7 @@ var game = function(socketio) {
 
 var Card = function(rank, suit) {
     // make sure rank is correct
-    if (!(2 <= rank <= Card.ACE)) {
+    if (!((2 <= rank <= 9) || rank === 'T' || rank === 'J' || rank === 'Q' || rank === 'K' || rank === 'A'  )) {
         console.log(rank);
         throw "Incorrect rank"
     }
@@ -43,11 +43,11 @@ Card.DIAMONDS = 'd';
 Card.CLUBS = 'c';
 Card.SPADES = 's';
 Card.HEARTS = 'h';
-Card.JACK = 11
-Card.QUEEN = 12;
-Card.KING = 13;
-Card.ACE = 14;
-Card.RANKS = [2, 3, 4, 5, 6, 7, 8, 9, 10, Card.JACK, Card.QUEEN, Card.KING, Card.ACE];
+Card.JACK = 'J'
+Card.QUEEN = 'Q';
+Card.KING = 'K';
+Card.ACE = 'A';
+Card.RANKS = [2, 3, 4, 5, 6, 7, 8, 9, 'T', Card.JACK, Card.QUEEN, Card.KING, Card.ACE];
 Card.SUITS = [Card.HEARTS, Card.SPADES, Card.CLUBS, Card.DIAMONDS];
 Card.isActuallyACard = function (card) {
     return card.hasOwnProperty('rank') && card.hasOwnProperty('suit');
