@@ -47,7 +47,7 @@ module.exports.Card.JACK = 11
 module.exports.Card.QUEEN = 12;
 module.exports.Card.KING = 13;
 module.exports.Card.ACE = 14;
-module.exports.Card.RANKS = [2, 3, 4, 5, 6, 7, 8, 9, 'A', module.exports.Card.JACK, module.exports.Card.QUEEN, module.exports.Card.KING, module.exports.Card.ACE];
+module.exports.Card.RANKS = [2, 3, 4, 5, 6, 7, 8, 9, 10, module.exports.Card.JACK, module.exports.Card.QUEEN, module.exports.Card.KING, module.exports.Card.ACE];
 module.exports.Card.SUITS = [module.exports.Card.HEARTS, module.exports.Card.SPADES, module.exports.Card.CLUBS, module.exports.Card.DIAMONDS];
 module.exports.Card.isActuallyACard = function (card) {
     return card.hasOwnProperty('rank') && card.hasOwnProperty('suit');
