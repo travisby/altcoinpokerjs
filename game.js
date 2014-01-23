@@ -66,6 +66,12 @@ Hand.prototype.getEval = function () {
     // TODO create a better representation
     return PokerEvaluator.evalHand(this.cards);
 };
+Hand.prototype.toJSON = function () {
+    return {
+        cards: this.cards.map(function (x) { return x.toJSON() }),
+        stats: this.getEval()
+    };
+}
 
 var Deck = function(cards) {
     // Check that we are in fact, cards
@@ -84,7 +90,7 @@ Deck.prototype.toJSON = function () {
 };
 Deck.prototype.toString = function () {
     return this.cards.join(',');
-}
+};
 Deck.prototype.shuffle = function () {
     // Fischer-Yates Shuffle
     for (var i = this.cards.length -1; i--; i <= 1) {
@@ -93,7 +99,10 @@ Deck.prototype.shuffle = function () {
         this.cards[i] = this.cards[j];
         this.cards[j] = temp;
     }
-}
+};
+Deck.prototype.pop = function () {
+    return this.cards.pop();
+};
 
 var PokerDeck = function() {
     // have a place to store all 52 cards
@@ -114,8 +123,44 @@ var PokerDeck = function() {
     return new Deck(cards);
 }
 
+var Player = function(socket) {
+    this.socket = socket;
+};
+Player.socket = null;
+Player.hand = null;
+
+var Table = function(deck) {
+    this.deck = deck;
+};
+Table.deck = null;
+Table.dealToPlayers = function (players) {
+    // We will create players.length piles of two, to simulate real dealing
+    // Rather than popping two cards off at a time for a player
+    var piles = [];
+
+    // make sure piles is full of arrays
+    for (var i = 0; i < players.length; i++) {
+        piles[i] = [];
+    }
+
+    // do this twice
+    for (var i = 0; i <= 1; i++) {
+        // for as many players as we have
+        for (var j = 0; j < players.length; j++) {
+            piles[j].push(deck.pop());
+        }
+    }
+
+    // and... make hands out of'em to the dealer
+    for (var i = 0; i < players.length; i++) {
+        players[i].hand = new Hand(piles[i]);
+    }
+};
+
 module.exports.game = game;
 module.exports.Card = Card;
 module.exports.Hand = Hand;
 module.exports.Deck = Deck;
 module.exports.PokerDeck = PokerDeck;
+module.exports.Player = Player;
+module.exports.Table = Table;
