@@ -1,4 +1,5 @@
 var utils = require('./utils.js');
+var PokerEvaluator = require('poker-evaluator');
 
 var game = function(socketio) {
     socketio.on(
@@ -61,6 +62,10 @@ var Hand = function(cards) {
     this.cards = cards;
 };
 Hand.prototype.cards = [];
+Hand.prototype.getEval = function () {
+    // TODO create a better representation
+    return PokerEvaluator.evalHand(this.cards);
+};
 
 var Deck = function(cards) {
     // Check that we are in fact, cards

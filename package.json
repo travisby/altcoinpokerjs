@@ -10,6 +10,7 @@
     "jade": "*",
     "sqlite3": "~2.2.0",
     "socket.io": "~0.9.16",
-    "sequelize": "~1.7.0-rc2"
+    "sequelize": "~1.7.0-rc2",
+    "poker-evaluator": "~0.3.1"
   }
 }
