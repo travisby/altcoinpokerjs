@@ -1,12 +1,70 @@
+// CONSTANTS
+var MAX_PLAYERS = 10
+var RECONNET_TIMEOUT_MS = 30 * 1000;
+
 var utils = require('./utils.js');
+var db = require('./models/');
 var PokerEvaluator = require('poker-evaluator');
 
+var rooms = {};
 var game = function(socketio) {
     socketio.on(
-        'join',
-        function (room) {
-            console.log(room);
-            socketio.join(room);
+        'connection',
+        function (userSocket) {
+            var player = new Player(userSocket);
+            // user-specific handlers
+            userSocket.on(
+                'join',
+                function (roomID) {
+                    // get the Room object first...
+                    db.Room.find(roomID).success(
+                        function (room) {
+                            var table = null;
+                            console.log(room);
+                            userSocket.join(room);
+
+                            // if we haven't instantiated anything yet...
+                            if (!(room.id in rooms)) {
+                                rooms[room.id] = new Table(room.deck);
+                            }
+                            table = rooms[room.id];
+
+                            // add our user if we are not full to the table
+                            if (table.players.length < MAX_PLAYERS) {
+                                table.players.append(player);
+                            }
+
+                            // Now that we have the room...
+                            userSocket.on(
+                                'ready',
+                                function () {
+                                    player.isReady = true;
+
+                                    if (table.isCanWeStart()) {
+                                        table.dealToPlayers();
+                                        table.players.forEach(
+                                            function (player) {
+                                                userSocket.emit(
+                                                    'deal',
+                                                    {
+                                                        cards: JSON.stringify(player.hand.toJSON())
+                                                    }
+                                                );
+                                            }
+                                        );
+                                    }
+                                }
+                            );
+                        }
+                    );
+                }
+            );
+            userSocket.on(
+                'disconnect',
+                function () {
+                    // TODO reconnect stuff here
+                }
+            );
         }
     );
 };
@@ -126,17 +184,23 @@ var PokerDeck = function() {
 var Player = function(socket) {
     this.socket = socket;
 };
-Player.socket = null;
-Player.hand = null;
+Player.prototype.socket = null;
+Player.prototype.hand = null;
+Player.prototype.isReady = false;
 
-var Table = function(deck) {
-    this.deck = deck;
+var Table = function(room) {
+    // we need the full DB object
+    this.room = room;
 };
-Table.deck = null;
-Table.dealToPlayers = function (players) {
+Table.prototype.room = null;
+Table.prototype.isGameBeingPlayed = false;
+Table.prototype.pot = 0;
+Table.prototype.dealToPlayers = function () {
     // We will create players.length piles of two, to simulate real dealing
     // Rather than popping two cards off at a time for a player
     var piles = [];
+    var deck = this.room.deck;
+    var players = this.players
 
     // make sure piles is full of arrays
     for (var i = 0; i < players.length; i++) {
@@ -155,8 +219,27 @@ Table.dealToPlayers = function (players) {
     for (var i = 0; i < players.length; i++) {
         players[i].hand = new Hand(piles[i]);
     }
-};
 
+    // and finally, save the (changed) deck object into the room
+    this.room.deck = deck;
+    this.room.save();
+};
+Table.prototype.isCanWeStart = function () {
+    // Conditions:
+    // Enough players
+    // Everyone is ready
+    // Current game not going on
+    if (
+        this.players.length >= MIN_PLAYERS_TO_START &&
+        all(this.players, function (player) { return player.isReady }) &&
+        !this.isGameBeingPlayed
+   ) {
+        return true;
+   }
+    return false;
+}
+
+// Export everything
 module.exports.game = game;
 module.exports.Card = Card;
 module.exports.Hand = Hand;
