@@ -38,20 +38,36 @@ var game = function(socketio) {
                             userSocket.on(
                                 'ready',
                                 function () {
-                                    player.isReady = true;
+
+                                    // only ready if the game is ready-able
+                                    if (!table.isGameBeingPlayed) {
+                                        player.isReady = true;
+                                    }
 
                                     if (table.isCanWeStart()) {
                                         table.dealToPlayers();
                                         table.players.forEach(
                                             function (player) {
                                                 userSocket.emit(
-                                                    'deal',
+                                                    'newPlayerCards',
                                                     {
                                                         cards: JSON.stringify(player.hand.toJSON())
                                                     }
                                                 );
                                             }
                                         );
+                                        // tell the entire room cards have been dealt
+                                        socketio.in(room.id).emit('deal');
+                                    }
+                                }
+                            );
+
+                            userSocket.on(
+                                'bet',
+                                function (data) {
+                                    if (table.canBet(player)) {
+                                        table.bet(player, data['amount']);
+                                        socketio.in(roomID).emit('bet', data);
                                     }
                                 }
                             );
@@ -196,7 +212,7 @@ Table.prototype.room = null;
 Table.prototype.isGameBeingPlayed = false;
 Table.prototype.pot = 0;
 Table.prototype.dealToPlayers = function () {
-    // We will create players.length piles of two, to simulate real dealing
+    // We will create players.length piles of two cards, to simulate real dealing
     // Rather than popping two cards off at a time for a player
     var piles = [];
     var deck = this.room.deck;
