@@ -774,7 +774,7 @@ Table.prototype.bet = function (player, amount) {
 
     // can all other players HANDLE this bet?
     // TODO handle sidepots
-    if (!(all(this.players, function (x) { x.coin >= amount })) {
+    if (!(all(this.players, function (x) { x.coin >= amount }))) {
         throw "Not every player can afford that";
     }
 
