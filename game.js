@@ -287,20 +287,26 @@ var Card = function(rank, suit) {
 /**
  * The Suit of our card
  *
- * @member {char} suit
+ * @memberof! Card
+ * @instance
+ * @type {char}
  */
 Card.prototype.suit = Card.DIAMONDS;
 
 /**
  * The Rank of our card
  *
- * @member {number|char} rank
+ * @memberof! Card
+ * @instance
+ * @type {number|char}
  */
 Card.prototype.rank = 2;
 
 /**
  * Return a string representation of this card
  *
+ * @memberof Card
+ * @instance
  * @method toString
  * @returns {string} String Representation
  */
@@ -312,19 +318,67 @@ Card.prototype.toString = function() {
  * Return a json representation of this card
  *
  * @method toJSON
+ * @instance
+ * @memberof Card
  * @returns {string} String Representation
  */
 Card.prototype.toJSON = Card.prototype.toString;
+/**
+ * @memberof! Card
+ * @static
+ */
 Card.DIAMONDS = 'd';
+/**
+ * @memberof! Card
+ * @static
+ */
 Card.CLUBS = 'c';
+/**
+ * @memberof! Card
+ * @static
+ */
 Card.SPADES = 's';
+/**
+ * @memberof! Card
+ * @static
+ */
 Card.HEARTS = 'h';
+/**
+ * @memberof! Card
+ * @static
+ */
 Card.JACK = 'J'
+/**
+ * @memberof! Card
+ * @static
+ */
 Card.QUEEN = 'Q';
+/**
+ * @memberof! Card
+ * @static
+ */
 Card.KING = 'K';
+/**
+ * @memberof! Card
+ * @static
+ */
 Card.ACE = 'A';
+/**
+ * @memberof! Card
+ * @static
+ */
 Card.RANKS = [2, 3, 4, 5, 6, 7, 8, 9, 'T', Card.JACK, Card.QUEEN, Card.KING, Card.ACE];
+/**
+ * @memberof! Card
+ * @static
+ */
 Card.SUITS = [Card.HEARTS, Card.SPADES, Card.CLUBS, Card.DIAMONDS];
+/**
+ * @memberof! Card
+ * @function
+ * @static
+ * @param {Card} card -- the card to test
+ */
 Card.isActuallyACard = function (card) {
     return card.hasOwnProperty('rank') && card.hasOwnProperty('suit');
 };
