@@ -709,10 +709,9 @@ Table.prototype.dealTurn = function () {
  * @memberof Table
  * @instance
  * @method
- * @todo do it
  */
 Table.prototype.dealRiver = function () {
-    // TODO
+    this.cards.push(this.deck.pop());
 };
 
 /**
