@@ -634,6 +634,14 @@ Table.prototype.lastStage = Table.stages.STARTED;
 Table.prototype.playingPlayersInOrder = [];
 
 /**
+ * Current cards on the table
+ * @memberof! Table
+ * @instance
+ * @type {Card[]}
+ */
+Table.prototype.cards = [];
+
+/**
  * Deal hole cards to players
  *
  * @memberof Table
@@ -679,7 +687,9 @@ Table.prototype.dealToPlayers = function () {
  * @todo do it
  */
 Table.prototype.dealFlop = function () {
-    // TODO
+    for (var i = 0; i < 3; i ++) {
+        this.cards.push(this.deck.pop());
+    }
 };
 
 /**
