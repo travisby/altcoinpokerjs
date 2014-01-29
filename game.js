@@ -115,7 +115,7 @@ var game = function(socketio) {
              * The currently connected user as a player
              * @type {Player}
              */
-            var player = new Player(userSocket);
+            var player;
             // user-specific handlers
 
             /**
@@ -148,6 +148,9 @@ var game = function(socketio) {
                              * @type {Table}
                              */
                             var table = null;
+
+                            // instantiate our user now
+                            player = new Player(userSocket, room.buyin);
                             console.log(room);
                             userSocket.join(room);
 
@@ -537,9 +540,11 @@ var PokerDeck = function() {
  *
  * @constructor
  * @param {SocketIO} socket - socket for the specific user
+ * @param {number} coin - how much money they are playing with
  */
-var Player = function(socket) {
+var Player = function(socket, coin) {
     this.socket = socket;
+    this.coin = coin;
 };
 
 /**
@@ -550,6 +555,15 @@ var Player = function(socket) {
  * @type {SocketIO}
  */
 Player.prototype.socket = null;
+
+/**
+ * The amount of money the player has to play with
+ * 
+ * @memberof! Player
+ * @instance
+ * @type {number}
+ */
+Player.prototype.coin = 0;
 
 /**
  * The player's current two-card hand
