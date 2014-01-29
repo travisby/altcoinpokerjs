@@ -656,6 +656,15 @@ Table.prototype.playingPlayersInOrder = [];
 Table.prototype.cards = [];
 
 /**
+ * Bets placed by players during the particular stage.  We play until these are equal!
+ *
+ * @memberof! Table
+ * @instance
+ * @type {Object<Player,number>}
+ */
+Table.prototype.bets = {};
+
+/**
  * Deal hole cards to players
  *
  * @memberof Table
@@ -756,10 +765,29 @@ Table.prototype.isCanWeStart = function () {
  * @memberof Table
  * @instance
  * @method
- * @todo do it
  */
 Table.prototype.bet = function (player, amount) {
-    // TODO
+    // can THIS player make that bet?
+    if (player.coin < amount) {
+        throw "User does not have enough money to play";
+    }
+
+    // can all other players HANDLE this bet?
+    // TODO handle sidepots
+    if (!(all(this.players, function (x) { x.coin >= amount })) {
+        throw "Not every player can afford that";
+    }
+
+    player.coin -= amount;
+    
+    // this player has already bet, just update his info
+    if (player in this.bets) {
+        this.bets[player] += amount;
+
+    // this player didn't exist.  Create their entry
+    } else {
+        this.bets[player] = amount;
+    }
 }
 
 /**
