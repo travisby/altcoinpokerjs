@@ -67,7 +67,13 @@ var game = function(socketio) {
                                 function (data) {
                                     if (table.canBet(player)) {
                                         table.bet(player, data['amount']);
+                                        data['nextPlayer'] = table.getNextBetter()
                                         socketio.in(roomID).emit('bet', data);
+                                    }
+
+                                    // if there are no bets to be made, continue on with the game
+                                    if (table.isCanContinueHand()) {
+                                        table.continue();
                                     }
                                 }
                             );
@@ -208,9 +214,18 @@ var Table = function(room) {
     // we need the full DB object
     this.room = room;
 };
+Table.stages = {
+    STARTED: 0,
+    READY: 1,
+    DEALT_HOLE_CARDS: 2,
+    FLOP: 3,
+    TURN: 4,
+    RIVER: 5
+};
 Table.prototype.room = null;
-Table.prototype.isGameBeingPlayed = false;
 Table.prototype.pot = 0;
+Table.prototype.lastStage = Table.stages.STARTED;
+Table.prototype.playingPlayersInOrder = [];
 Table.prototype.dealToPlayers = function () {
     // We will create players.length piles of two cards, to simulate real dealing
     // Rather than popping two cards off at a time for a player
@@ -240,6 +255,12 @@ Table.prototype.dealToPlayers = function () {
     this.room.deck = deck;
     this.room.save();
 };
+Table.prototype.dealFlop = function () {
+};
+Table.prototype.dealTurn = function () {
+};
+Table.prototype.dealRiver = function () {
+};
 Table.prototype.isCanWeStart = function () {
     // Conditions:
     // Enough players
@@ -248,12 +269,43 @@ Table.prototype.isCanWeStart = function () {
     if (
         this.players.length >= MIN_PLAYERS_TO_START &&
         all(this.players, function (player) { return player.isReady }) &&
-        !this.isGameBeingPlayed
+        this.lastStage === Table.stages.STARTED
    ) {
         return true;
    }
     return false;
 }
+// table.bet(player, data['amount']);
+Table.prototype.bet = function (player, amount) {
+}
+Table.prototype.continue = function () {
+    // deal next set of cards, or finish the game
+
+    // go to the next stage
+    this.lastStage = (this.lastStage + 1) % Table.stages.RIVER + 1
+
+    switch (this.lastStage) {
+        case Table.stages.STARTED:
+            // TODO game reset here + winners here
+            break;
+        case Table.stages.READY:
+            break;
+        case Table.stages.DEALT_HOLE_CARDS:
+            this.dealToPlayers();
+            break;
+        case Table.stages.FLOP:
+            this.dealFlop();
+            break;
+        case Table.stages.TURN:
+            this.dealTurn();
+            break;
+        case Table.stages.RIVER:
+            this.dealRiver();
+            break;
+    }
+}
+
+
 
 // Export everything
 module.exports.game = game;
