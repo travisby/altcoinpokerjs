@@ -383,6 +383,12 @@ Card.isActuallyACard = function (card) {
     return card.hasOwnProperty('rank') && card.hasOwnProperty('suit');
 };
 
+/**
+ * Hand object
+ *
+ * @constructor
+ * @param {Card[]} cards - list of cards
+ */
 var Hand = function(cards) {
     // Check that we are in fact, cards
     if (!utils.all(Card.isActuallyACard, cards)) {
@@ -390,11 +396,37 @@ var Hand = function(cards) {
     }
     this.cards = cards;
 };
+
+/**
+ * List of cards
+ *
+ * @memberof! Hand
+ * @instance
+ * @type {Card[]}
+ */
 Hand.prototype.cards = [];
+
+/**
+ * Get the evaluated hand representation
+ *
+ * @memberof Hand
+ * @instance
+ * @method
+ * @returns {object}
+ */
 Hand.prototype.getEval = function () {
     // TODO create a better representation
     return PokerEvaluator.evalHand(this.cards);
 };
+
+/**
+ * Gets a JSONic representation of this hand
+ *
+ * @memberof Hand
+ * @instance
+ * @method
+ * @returns {object}
+ */
 Hand.prototype.toJSON = function () {
     return {
         cards: this.cards.map(function (x) { return x.toJSON() }),
@@ -402,6 +434,11 @@ Hand.prototype.toJSON = function () {
     };
 }
 
+/**
+ * Deck object that holds many cards
+ * @constructor
+ * @param {Card[]} cards - list of cards in the deck
+ */
 var Deck = function(cards) {
     // Check that we are in fact, cards
     if (!utils.all(Card.isActuallyACard, cards)) {
@@ -409,7 +446,22 @@ var Deck = function(cards) {
     }
     this.cards = cards;
 };
+
+/**
+ * @memberof! Deck
+ * @instance
+ * @type {Card[]}
+ */
 Deck.prototype.cards = [];
+
+/**
+ * Gets a JSONic representation of this deck
+ *
+ * @memberof Deck
+ * @instance
+ * @method
+ * @returns {object}
+ */
 Deck.prototype.toJSON = function () {
     return this.cards.map(
         function (card) {
@@ -417,9 +469,25 @@ Deck.prototype.toJSON = function () {
         }
     );
 };
+
+/**
+ * Gets a string representation of this deck
+ *
+ * @memberof Deck
+ * @instance
+ * @method
+ * @returns {string}
+ */
 Deck.prototype.toString = function () {
     return this.cards.join(',');
 };
+
+/**
+ * Shuffles the deck of cards
+ *
+ * @memberof Deck
+ * @method
+ */
 Deck.prototype.shuffle = function () {
     // Fischer-Yates Shuffle
     for (var i = this.cards.length -1; i--; i <= 1) {
@@ -429,10 +497,22 @@ Deck.prototype.shuffle = function () {
         this.cards[j] = temp;
     }
 };
+
+/**
+ * Gets one card from the top of the deck
+ *
+ * @memberof Deck
+ * @method
+ */
 Deck.prototype.pop = function () {
     return this.cards.pop();
 };
 
+/**
+ * Builds a deck suitable for playing poker
+ *
+ * @returns{Deck} - deck with your ordinary French Deck 52 cards
+ */
 var PokerDeck = function() {
     // have a place to store all 52 cards
     var cards = [];
@@ -452,17 +532,62 @@ var PokerDeck = function() {
     return new Deck(cards);
 }
 
+/**
+ * Player object
+ *
+ * @constructor
+ * @param {SocketIO} socket - socket for the specific user
+ */
 var Player = function(socket) {
     this.socket = socket;
 };
+
+/**
+ * Handle of the user's socket
+ *
+ * @memberof! Player
+ * @instance
+ * @type {SocketIO}
+ */
 Player.prototype.socket = null;
+
+/**
+ * The player's current two-card hand
+ *
+ * @memberof! Hand
+ * @instance
+ * @type {Hand}
+ */
 Player.prototype.hand = null;
+
+/**
+ * Did this player ready-up?
+ *
+ * @memberof! Hand
+ * @instance
+ * @type {bool}
+ */
 Player.prototype.isReady = false;
 
+/**
+ * Table of a poker room
+ *
+ * @constructor
+ * @param {db.Room} room - one specific room that we will update with our info
+ */
 var Table = function(room) {
     // we need the full DB object
     this.room = room;
 };
+
+/**
+ * Different stages that we could be in
+ *
+ * @enum {number}
+ * @readonly
+ * @memberof! Table
+ * @static
+ */
 Table.stages = {
     STARTED: 0,
     READY: 1,
@@ -471,10 +596,50 @@ Table.stages = {
     TURN: 4,
     RIVER: 5
 };
+
+/**
+ * Room Object
+ * 
+ * @memberof! Table
+ * @instance
+ * @type {Room}
+ */
 Table.prototype.room = null;
+
+/**
+ * The cash money in the pot
+ *
+ * @memberof! Table
+ * @instance
+ * @type {number}
+ */
 Table.prototype.pot = 0;
+
+/**
+ * The last stage we completed
+ *
+ * @memberof! Table
+ * @instance
+ * @type {number}
+ */
 Table.prototype.lastStage = Table.stages.STARTED;
+
+/**
+ * List of players, in which order stuff should happen
+ *
+ * @memberof! Table
+ * @instance
+ * @type {Player[]}
+ */
 Table.prototype.playingPlayersInOrder = [];
+
+/**
+ * Deal hole cards to players
+ *
+ * @memberof Table
+ * @instance
+ * @method
+ */
 Table.prototype.dealToPlayers = function () {
     // We will create players.length piles of two cards, to simulate real dealing
     // Rather than popping two cards off at a time for a player
@@ -504,12 +669,51 @@ Table.prototype.dealToPlayers = function () {
     this.room.deck = deck;
     this.room.save();
 };
+
+/**
+ * Deal the flop to the table
+ *
+ * @memberof Table
+ * @instance
+ * @method
+ * @todo do it
+ */
 Table.prototype.dealFlop = function () {
+    // TODO
 };
+
+/**
+ * Deal the turn to the table
+ *
+ * @memberof Table
+ * @instance
+ * @method
+ * @todo do it
+ */
 Table.prototype.dealTurn = function () {
+    // TODO
 };
+
+/**
+ * Deal the river to the table
+ *
+ * @memberof Table
+ * @instance
+ * @method
+ * @todo do it
+ */
 Table.prototype.dealRiver = function () {
+    // TODO
 };
+
+/**
+ * Can we start the game?
+ *
+ * @memberof Table
+ * @instance
+ * @method
+ * @returns {bool}
+ */
 Table.prototype.isCanWeStart = function () {
     // Conditions:
     // Enough players
@@ -524,9 +728,25 @@ Table.prototype.isCanWeStart = function () {
    }
     return false;
 }
-// table.bet(player, data['amount']);
+
+/**
+ * Perform a bet for a player
+ * @memberof Table
+ * @instance
+ * @method
+ * @todo do it
+ */
 Table.prototype.bet = function (player, amount) {
+    // TODO
 }
+
+/**
+ * Move on to the next stage of the game
+ *
+ * @memberof Table
+ * @instance
+ * @method
+ */
 Table.prototype.continue = function () {
     // deal next set of cards, or finish the game
 
@@ -553,10 +773,17 @@ Table.prototype.continue = function () {
             break;
     }
 };
+
+/**
+ * Reset the game to a replayable state
+ *
+ * @memberof Table
+ * @instance
+ * @method
+ */
 Table.prototype.reset = function () {
     // TODO game reset here + winners here
 };
-
 
 
 // Export everything
