@@ -698,10 +698,9 @@ Table.prototype.dealFlop = function () {
  * @memberof Table
  * @instance
  * @method
- * @todo do it
  */
 Table.prototype.dealTurn = function () {
-    // TODO
+    this.cards.push(this.deck.pop());
 };
 
 /**
