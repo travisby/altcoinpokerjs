@@ -1,24 +1,152 @@
-// CONSTANTS
-var MAX_PLAYERS = 10
-var RECONNET_TIMEOUT_MS = 30 * 1000;
-
+// loaded modules
 var utils = require('./utils.js');
 var db = require('./models/');
 var PokerEvaluator = require('poker-evaluator');
 
+/**
+ * Betting Object Type Decleration
+ *
+ * @typedef {Object} betObj
+ * @property {number} amount - number of coins to bet
+ * @property {Player} nextPlayer - the player that bet
+ */
+
+// events
+/**
+ * Event for users connecting to the socketio socket
+ *
+ * @event connection
+ */
+var connection = 'connection';
+
+/**
+ * Event for users joining a room
+ *
+ * @event join
+ * @type {number} -  the room ID to join
+ */
+var join = 'join';
+
+/**
+ * Event for sending hole cards to players
+ *
+ * @event newPlayerCards
+ * @type {object}
+ * @property {string} cards - ',' delimited list of cards
+ */
+var newPlayerCards = 'newPlayerCards';
+
+/**
+ * Event to broadcast that the hand has been dealt
+ *
+ * @event deal
+ */
+var deal = 'deal';
+
+/**
+ * Event to be sent to inform everyone of a bet
+ *
+ * @event bet
+ */
+var bet = 'bet';
+
+/**
+ * Event to tell the server that a specific user is ready
+ *
+ * @event ready
+ */
+var ready = 'ready';
+
+/**
+ * Event when a user leaves the game, whether accidentally or purposely
+ *
+ * @event disconnect
+ */
+var disconnect = 'disconnect';
+
+/**
+ * Max number of players that can sit down at a table.  Others will be watchers
+ *
+ * @const {number}
+ */
+var MAX_PLAYERS = 10
+
+/**
+ * The longest time we can possibly wait for a player to reconnect
+ *
+ * @const {number}
+ */
+var RECONNET_TIMEOUT_MS = 30 * 1000;
+
+// Globals
+
+/**
+ * Hashmap holding all of the rooms currently active
+ *
+ * @type {Object.<number, Table>}
+ */
 var rooms = {};
+
+/**
+ * Adds a bunch of events to the socketio object
+ *
+ * @param {SocketIO} socketio
+ */
 var game = function(socketio) {
+    /**
+     * Event for users connecting to the socketio socket
+     *
+     * @listens connection
+     */
     socketio.on(
-        'connection',
+        connection,
+        /**
+         * Callback for when a user connects
+         *
+         * @fires newPlayerCards
+         * @fires deal
+         * @fires bet
+         *
+         * @param {SocketIO} userSocket -- connected user socket
+         */
         function (userSocket) {
+
+            /**
+             * The currently connected user as a player
+             * @type {Player}
+             */
             var player = new Player(userSocket);
             // user-specific handlers
+
+            /**
+             * Event for when a user joins a specific room
+             *
+             * @listens join
+             */
             userSocket.on(
-                'join',
+                join,
+
+                /**
+                 * Callback for a user joining a specific room
+                 *
+                 * @fires deal
+                 * @fires bet
+                 * @param {number} roomID the id of the room we are joining
+                 */
                 function (roomID) {
                     // get the Room object first...
                     db.Room.find(roomID).success(
+                        /**
+                         * Function to run when we get our room object back
+                         * 
+                         * @param {db.Room} room - room with roomID
+                         */
                         function (room) {
+                            /**
+                             * The current table
+                             *
+                             * @type {Table}
+                             */
                             var table = null;
                             console.log(room);
                             userSocket.join(room);
@@ -35,8 +163,20 @@ var game = function(socketio) {
                             }
 
                             // Now that we have the room...
+
+                            /**
+                             * Event for when a player readys-up
+                             *
+                             * @listens ready
+                             */
                             userSocket.on(
-                                'ready',
+                                ready,
+
+                                /**
+                                 * Function to be run when a player readys up
+                                 *
+                                 * @fires newPlayerCards
+                                 */
                                 function () {
 
                                     // only ready if the game is ready-able
@@ -47,9 +187,15 @@ var game = function(socketio) {
                                     if (table.isCanWeStart()) {
                                         table.dealToPlayers();
                                         table.players.forEach(
+
+                                            /**
+                                             * For every player, let them know their cards
+                                             *
+                                             * @fires newPlayerCards
+                                             */
                                             function (player) {
                                                 userSocket.emit(
-                                                    'newPlayerCards',
+                                                    newPlayerCards,
                                                     {
                                                         cards: JSON.stringify(player.hand.toJSON())
                                                     }
@@ -62,8 +208,19 @@ var game = function(socketio) {
                                 }
                             );
 
+                            /**
+                             * Event listener for players betting
+                             * @listens bet
+                             */
                             userSocket.on(
-                                'bet',
+                                bet,
+
+                                /**
+                                 * Function to run when we get our bet
+                                 *
+                                 * @param {betObj} data
+                                 * @fires bet
+                                 */
                                 function (data) {
                                     if (table.canBet(player)) {
                                         table.bet(player, data['amount']);
@@ -81,8 +238,13 @@ var game = function(socketio) {
                     );
                 }
             );
+            /**
+             * Handle disconnects
+             *
+             * @listens disconnect
+             */
             userSocket.on(
-                'disconnect',
+                disconnect,
                 function () {
                     // TODO reconnect stuff here
                 }
@@ -92,6 +254,13 @@ var game = function(socketio) {
 };
 
 
+/**
+ * Creates a new specific card
+ *
+ * @constructor
+ * @param {number|char} rank - the rank, 2-9 or T,J,Q,K,A
+ * @param {char} suit - from Card.*
+ */
 var Card = function(rank, suit) {
     // make sure rank is correct
     if (!((2 <= rank <= 9) || rank === 'T' || rank === 'J' || rank === 'Q' || rank === 'K' || rank === 'A'  )) {
@@ -114,11 +283,37 @@ var Card = function(rank, suit) {
     this.rank = rank;
     this.suit = suit;
 };
+
+/**
+ * The Suit of our card
+ *
+ * @member {char} suit
+ */
 Card.prototype.suit = Card.DIAMONDS;
+
+/**
+ * The Rank of our card
+ *
+ * @member {number|char} rank
+ */
 Card.prototype.rank = 2;
+
+/**
+ * Return a string representation of this card
+ *
+ * @method toString
+ * @returns {string} String Representation
+ */
 Card.prototype.toString = function() {
     return [this.rank, this.suit].join('');
 };
+
+/**
+ * Return a json representation of this card
+ *
+ * @method toJSON
+ * @returns {string} String Representation
+ */
 Card.prototype.toJSON = Card.prototype.toString;
 Card.DIAMONDS = 'd';
 Card.CLUBS = 'c';
@@ -286,7 +481,7 @@ Table.prototype.continue = function () {
 
     switch (this.lastStage) {
         case Table.stages.STARTED:
-            // TODO game reset here + winners here
+            this.reset();
             break;
         case Table.stages.READY:
             break;
@@ -303,7 +498,10 @@ Table.prototype.continue = function () {
             this.dealRiver();
             break;
     }
-}
+};
+Table.prototype.reset = function () {
+    // TODO game reset here + winners here
+};
 
 
 
