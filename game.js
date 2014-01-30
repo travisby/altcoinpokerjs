@@ -69,7 +69,7 @@ var disconnect = 'disconnect';
  *
  * @const {number}
  */
-var MAX_PLAYERS = 10
+var MAX_PLAYERS = 10;
 
 /**
  * The longest time we can possibly wait for a player to reconnect
@@ -226,8 +226,8 @@ var game = function(socketio) {
                                  */
                                 function (data) {
                                     if (table.canBet(player)) {
-                                        table.bet(player, data['amount']);
-                                        data['nextPlayer'] = table.getNextBetter()
+                                        table.bet(player, data.amount);
+                                        data.nextPlayer = table.getNextBetter();
                                         socketio.in(roomID).emit('bet', data);
                                     }
 
@@ -268,7 +268,7 @@ var Card = function(rank, suit) {
     // make sure rank is correct
     if (!((2 <= rank <= 9) || rank === 'T' || rank === 'J' || rank === 'Q' || rank === 'K' || rank === 'A'  )) {
         console.log(rank);
-        throw "Incorrect rank"
+        throw "Incorrect rank";
     }
     // make sure the suit is correct
     switch (suit) {
@@ -350,7 +350,7 @@ Card.HEARTS = 'h';
  * @memberof! Card
  * @static
  */
-Card.JACK = 'J'
+Card.JACK = 'J';
 /**
  * @memberof! Card
  * @static
@@ -432,10 +432,10 @@ Hand.prototype.getEval = function () {
  */
 Hand.prototype.toJSON = function () {
     return {
-        cards: this.cards.map(function (x) { return x.toJSON() }),
+        cards: this.cards.map(function (x) { return x.toJSON(); }),
         stats: this.getEval()
     };
-}
+};
 
 /**
  * Deck object that holds many cards
@@ -533,7 +533,7 @@ var PokerDeck = function() {
 
     // build a deck with these cards, and use it as the return value
     return new Deck(cards);
-}
+};
 
 /**
  * Player object
@@ -656,13 +656,13 @@ Table.prototype.playingPlayersInOrder = [];
 Table.prototype.cards = [];
 
 /**
- * Bets placed by players during the particular stage.  We play until these are equal!
+ * player bet manager obj
  *
  * @memberof! Table
  * @instance
- * @type {Object<Player,number>}
+ * @type {PlayerBetManager}
  */
-Table.prototype.bets = {};
+Table.prototype.playerBetManager = null;
 
 /**
  * Deal hole cards to players
@@ -676,7 +676,7 @@ Table.prototype.dealToPlayers = function () {
     // Rather than popping two cards off at a time for a player
     var piles = [];
     var deck = this.room.deck;
-    var players = this.players
+    var players = this.players;
 
     // make sure piles is full of arrays
     for (var i = 0; i < players.length; i++) {
@@ -684,7 +684,7 @@ Table.prototype.dealToPlayers = function () {
     }
 
     // do this twice
-    for (var i = 0; i <= 1; i++) {
+    for (i = 0; i <= 1; i++) {
         // for as many players as we have
         for (var j = 0; j < players.length; j++) {
             piles[j].push(deck.pop());
@@ -692,7 +692,7 @@ Table.prototype.dealToPlayers = function () {
     }
 
     // and... make hands out of'em to the dealer
-    for (var i = 0; i < players.length; i++) {
+    for (i = 0; i < players.length; i++) {
         players[i].hand = new Hand(piles[i]);
     }
 
@@ -752,13 +752,13 @@ Table.prototype.isCanWeStart = function () {
     // Current game not going on
     if (
         this.players.length >= MIN_PLAYERS_TO_START &&
-        all(this.players, function (player) { return player.isReady }) &&
+        all(this.players, function (player) { return player.isReady; }) &&
         this.lastStage === Table.stages.STARTED
    ) {
         return true;
    }
     return false;
-}
+};
 
 /**
  * Perform a bet for a player
@@ -767,7 +767,8 @@ Table.prototype.isCanWeStart = function () {
  * @method
  */
 Table.prototype.bet = function (player, amount) {
-}
+    // TODO
+};
 
 /**
  * Move on to the next stage of the game
@@ -780,7 +781,7 @@ Table.prototype.continue = function () {
     // deal next set of cards, or finish the game
 
     // go to the next stage
-    this.lastStage = (this.lastStage + 1) % Table.stages.RIVER + 1
+    this.lastStage = (this.lastStage + 1) % Table.stages.RIVER + 1;
 
     switch (this.lastStage) {
         case Table.stages.STARTED:
@@ -944,7 +945,7 @@ PlayerBetManager.prototype.bet = function (player, amount) {
 
     // can all other players HANDLE this bet?
     // TODO handle sidepots
-    if (!(all(this.players, function (x) { x.coin >= amount }))) {
+    if (!(all(this.players, function (x) { return x.coin >= amount; }))) {
         throw "Not every player can afford that";
     }
 
