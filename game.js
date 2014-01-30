@@ -888,7 +888,7 @@ PlayerBetManager.prototype.lastBetterIndex = -1;
  * @memberof PlayerBetManager
  * @instance
  * @method
- * @returns {(PlayerBet|bool}
+ * @returns {(PlayerBet|bool)}
  */
 PlayerBetManager.prototype.nextBetter = function () {
     var previousBetter = this.playerBets[this.lastBetterIndex];
