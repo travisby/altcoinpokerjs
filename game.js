@@ -261,7 +261,7 @@ var game = function(socketio) {
  * Creates a new specific card
  *
  * @constructor
- * @param {number|char} rank - the rank, 2-9 or T,J,Q,K,A
+ * @param {(number|char)} rank - the rank, 2-9 or T,J,Q,K,A
  * @param {char} suit - from Card.*
  */
 var Card = function(rank, suit) {
@@ -301,7 +301,7 @@ Card.prototype.suit = Card.DIAMONDS;
  *
  * @memberof! Card
  * @instance
- * @type {number|char}
+ * @type {(number|char)}
  */
 Card.prototype.rank = 2;
 
@@ -767,27 +767,6 @@ Table.prototype.isCanWeStart = function () {
  * @method
  */
 Table.prototype.bet = function (player, amount) {
-    // can THIS player make that bet?
-    if (player.coin < amount) {
-        throw "User does not have enough money to play";
-    }
-
-    // can all other players HANDLE this bet?
-    // TODO handle sidepots
-    if (!(all(this.players, function (x) { x.coin >= amount }))) {
-        throw "Not every player can afford that";
-    }
-
-    player.coin -= amount;
-    
-    // this player has already bet, just update his info
-    if (player in this.bets) {
-        this.bets[player] += amount;
-
-    // this player didn't exist.  Create their entry
-    } else {
-        this.bets[player] = amount;
-    }
 }
 
 /**
@@ -835,6 +814,165 @@ Table.prototype.reset = function () {
     // TODO game reset here + winners here
 };
 
+/**
+ * Object to hold a player's bet for a round
+ * 
+ * @constructor
+ * @param {Player} player - betting player
+ * @param {number} [amount=0] - Amount bet.
+ */
+PlayerBet = function(player, amount) {
+    amount = typeof amount !== 'undefined' ? b : 0;
+};
+
+/**
+ * Player responsible for a bet
+ *
+ * @memberof! PlayerBet
+ * @instance
+ * @type {Player}
+ */
+PlayerBet.prototype.player = null;
+
+/**
+ * Amount a player has bet so far this round
+ *
+ * @memberof! PlayerBet
+ * @instance
+ * @type {number}
+ */
+PlayerBet.prototype.amount = 0;
+
+/**
+ * Place bet
+ *
+ * @memberof PlayerBet
+ * @instance
+ * @param {number} amount to bet
+ */
+PlayerBet.prototype.bet = function (amount) {
+    this.amount += amount;
+};
+
+/**
+ * Object to manage all of the bets for players
+ *
+ * @constructor
+ * @param {Player[]} players - list of players to manage, in betting order
+ */
+PlayerBetManager = function (players) {
+    var manager = this;
+
+    players.forEach = function (player) {
+        manager.playerBets.push(new PlayerBet(player, 0));
+    };
+};
+
+/**
+ * The index of the next person who should bet
+ *
+ * -1 means we have not had player 0 bet yet
+ *  player.length means we've reached the end, and player 0 should bet
+ * @memberof! PlayerBetManager
+ * @instance
+ * @type {number}
+ */
+PlayerBetManager.prototype.lastBetterIndex = -1;
+
+/**
+ * Return the next required PlayerBet that at least must occur
+ * e.g. the next player in line MUST bet (at least)10, or MUST bet (at least) 0
+ *
+ * false if there are no possible bets left
+ *
+ * @memberof PlayerBetManager
+ * @instance
+ * @method
+ * @returns {(PlayerBet|bool}
+ */
+PlayerBetManager.prototype.nextBetter = function () {
+    var previousBetter = this.playerBets[this.lastBetterIndex];
+    var nextBetter = this.playerBets[this.lastBetterIndex + 1 / this.playerBets.length];
+};
+
+/**
+ * The players in a bet manager
+ *
+ * @memberof! PlayerBetManager
+ * @instance
+ * @type {PlayerBet[]}
+ */
+PlayerBetManager.prototype.playerBets = [];
+
+/**
+ * All players who have raised this round
+ *
+ * @memberof! PlayerBetManager
+ * @instance
+ * @type {Player[]}
+ */ 
+PlayerBetManager.prototype.playersWhoRaised = [];
+
+/**
+ * Decides if the player has bet so far
+ *
+ * @memberof PlayerBetManager
+ * @instance
+ * @method
+ * @param {Player} player - the player who we're questioning about
+ * @returns {bool}
+ */
+PlayerBetManager.prototype.isHasPlayerBet = function (player) {
+    // if this is NOT -1, then player has bet
+    return this.playersWhoRaised.indexOf(player) != -1
+}
+
+/**
+ * Bet for a player
+ *
+ * @memberof PlayerBetManager
+ * @instance
+ * @method
+ * @param {Player} player - better
+ * @param {amount} amount - amount bet
+ */
+PlayerBetManager.prototype.bet = function (player, amount) {
+    // can THIS player make that bet?
+    if (player.coin < amount) {
+        throw "User does not have enough money to play";
+    }
+
+    // can all other players HANDLE this bet?
+    // TODO handle sidepots
+    if (!(all(this.players, function (x) { x.coin >= amount }))) {
+        throw "Not every player can afford that";
+    }
+
+    player.coin -= amount;
+
+    this.playersWhoRaised.push(player);
+    this.getPlayerBetByPlayer(player).bet(amount);
+};
+
+/**
+ * Get the given player's PlayerBet object
+ *
+ * @memberof PlayerBetmanager
+ * @instance
+ * @protected
+ * @method
+ * @param {Player}
+ * @returns {PlayerBet}
+ */
+PlayerBetManager.prototype.getPlayerBetByPlayer = function (player) {
+    for (var i = 0; i < this.playerBets.length; i++) {
+        var ourPlayerBet = this.playerBets[i];
+        if (ourPlayer.player === player ) {
+            return ourPlayerBet;
+        }
+    }
+    throw "Can't find him!";
+};
 
 // Export everything
 module.exports.game = game;
