@@ -187,8 +187,7 @@ var game = function(socketio) {
                                         player.isReady = true;
                                     }
 
-                                    if (table.isCanWeStart()) {
-                                        table.dealToPlayers();
+                                    if (table.continue()) {
                                         table.players.forEach(
 
                                             /**
@@ -230,11 +229,7 @@ var game = function(socketio) {
                                         data.nextPlayer = table.getNextBetter();
                                         socketio.in(roomID).emit('bet', data);
                                     }
-
-                                    // if there are no bets to be made, continue on with the game
-                                    if (table.isCanContinueHand()) {
-                                        table.continue();
-                                    }
+                                    table.continue();
                                 }
                             );
                         }
@@ -771,13 +766,53 @@ Table.prototype.bet = function (player, amount) {
 };
 
 /**
- * Move on to the next stage of the game
+ * Can we continue?
  *
  * @memberof Table
  * @instance
  * @method
+ * @returns {bool}
+ */
+Table.prototype.isCanWeContinue = function () {
+    // TODO fill out
+    switch (this.lastStage) {
+        // to continue after having started a game... players must be ready
+        case Table.stages.STARTED:
+            break;
+        // nothing must happen between readying-up and dealing hole cards
+        case Table.stages.READY:
+            break;
+        // to continue after hole cards have been dealt, betting rounds must have occurred
+        case Table.stages.DEALT_HOLE_CARDS:
+            this.dealToPlayers();
+            break;
+        // to continue after flop cards have been dealt, betting rounds must have occurred
+        case Table.stages.FLOP:
+            this.dealFlop();
+            break;
+        // to continue after turn card has been dealt, betting rounds must have occurred
+        case Table.stages.TURN:
+            this.dealTurn();
+            break;
+        // to continue after river card has been dealt, betting rounds must have occurred
+        case Table.stages.RIVER:
+            this.dealRiver();
+            break;
+    }
+};
+
+/**
+ * Move on to the next stage of the game.  Returns success
+ *
+ * @memberof Table
+ * @instance
+ * @method
+ * @returns {bool}
  */
 Table.prototype.continue = function () {
+    if (!this.isCanWeContinue()) {
+        return false;
+    }
     // deal next set of cards, or finish the game
 
     // go to the next stage
