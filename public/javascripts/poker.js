@@ -42,6 +42,7 @@ var deal = 'deal';
  * Event to be sent to inform everyone of a bet
  *
  * @event bet
+ * @type {betObj}
  */
 var bet = 'bet';
 
@@ -58,8 +59,62 @@ var ready = 'ready';
  * @event disconnect
  */
 var disconnect = 'disconnect';
+
 var socket = io.connect('/pokersocket');
 socket.on('connect', function (data) {
     console.log("asking to join room " + roomID);
     socket.emit('join', {roomID: roomID});
 });
+
+/**
+ * Listens for newPlayerCards; event where we are dealt new hole cards
+ *
+ * @listens newPlayerCards
+ */
+socket.on(
+    newPlayerCards,
+    function (data) {
+        // TODO display them on the game screen
+        // for now we just print them into the console
+        console.log(data.cards);
+    }
+);
+
+/**
+ * Listens for deal, letting us know cards are being dealt
+ *
+ * We should draw to the screen
+ *
+ * @listens deal
+ */
+socket.on(
+    deal,
+    function () {
+        // TODO draw cards being dealt
+    }
+);
+
+/**
+ * Let the server know we are placing a bet
+ *
+ * @fires bet
+ */
+$('#betButton').onClick = function () {
+    socket.emit(
+        bet,
+        {
+            amount: parseInt($('#betAmountField')),
+            // not used on this end... TODO refactor and use a separate object
+            nextPlayer: null
+        }
+    );
+};
+
+/**
+ * Player readys-up
+ *
+ * @fires ready
+ */
+$('#readyButton').onClick = function () {
+    socket.emit(ready);
+};
