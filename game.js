@@ -71,6 +71,12 @@ var disconnect = 'disconnect';
 var MAX_PLAYERS = 10;
 
 /**
+ * Mininum number of players to start a game
+ * @const {number}
+ */
+var MIN_PLAYERS_TO_START = 1;
+
+/**
  * The longest time we can possibly wait for a player to reconnect
  *
  * @const {number}
@@ -158,12 +164,13 @@ var game = function(socketio, db) {
 
                             // if we haven't instantiated anything yet...
                             if (!(room.id in rooms)) {
-                                rooms[room.id] = new Table(room.deck);
+                                rooms[room.id] = new Table(room);
                             }
                             table = rooms[room.id];
 
                             // add our user if we are not full to the table
                             if (table.players.length < MAX_PLAYERS) {
+                                console.log("adding player to table");
                                 table.players.push(player);
                             }
 
@@ -185,12 +192,13 @@ var game = function(socketio, db) {
                                 function () {
                                     console.log("Listened to a ready event");
 
-                                    // only ready if the game is ready-able
-                                    if (!table.isGameBeingPlayed) {
+                                    // only ready if the game is ready-able and the table needs more players
+                                    if (!table.isGameBeingPlayed()) {
                                         player.isReady = true;
                                     }
+                                    var x = table.continue();
 
-                                    if (table.continue()) {
+                                    if (x) {
                                         table.players.forEach(
 
                                             /**
@@ -201,14 +209,13 @@ var game = function(socketio, db) {
                                             function (player) {
                                                 userSocket.emit(
                                                     newPlayerCards,
-                                                    {
-                                                        cards: JSON.stringify(player.hand.toJSON())
-                                                    }
+                                                    player.hand.toJSON()
                                                 );
                                             }
                                         );
                                         // tell the entire room cards have been dealt
-                                        socketio.in(room.id).emit('deal');
+                                        userSocket.broadcast.to(room.id).emit('deal');
+                                        userSocket.emit('deal');
                                     }
                                 }
                             );
@@ -419,7 +426,7 @@ Hand.prototype.cards = [];
  */
 Hand.prototype.getEval = function () {
     // TODO create a better representation
-    return PokerEvaluator.evalHand(this.cards);
+    // return PokerEvaluator.evalHand(this.cards);
 };
 
 /**
@@ -760,6 +767,11 @@ Table.prototype.isCanWeStart = function () {
     return false;
 };
 
+Table.prototype.isGameBeingPlayed = function () {
+    // our game is always being played UNLESS we are in the "STARTED" stage
+    return this.lastStage != Table.stages.STARTED;
+};
+
 /**
  * Perform a bet for a player
  * @memberof Table
@@ -790,31 +802,33 @@ Table.prototype.canBet = function (player) {
  * @returns {bool}
  */
 Table.prototype.isCanWeContinue = function () {
-    // TODO fill out
     switch (this.lastStage) {
         // to continue after having started a game... players must be ready
         case Table.stages.STARTED:
-            break;
+            return utils.all(function (player) { return player.isReady; }, this.players);
         // nothing must happen between readying-up and dealing hole cards
         case Table.stages.READY:
+            // TODO fill out
             break;
         // to continue after hole cards have been dealt, betting rounds must have occurred
         case Table.stages.DEALT_HOLE_CARDS:
-            this.dealToPlayers();
+            // TODO fill out
             break;
         // to continue after flop cards have been dealt, betting rounds must have occurred
         case Table.stages.FLOP:
-            this.dealFlop();
+            // TODO fill out
             break;
         // to continue after turn card has been dealt, betting rounds must have occurred
         case Table.stages.TURN:
-            this.dealTurn();
+            // TODO fill out
             break;
         // to continue after river card has been dealt, betting rounds must have occurred
         case Table.stages.RIVER:
-            this.dealRiver();
+            // TODO fill out
             break;
     }
+
+    return false;
 };
 
 /**
@@ -836,27 +850,35 @@ Table.prototype.continue = function () {
 
     switch (this.lastStage) {
         case Table.stages.STARTED:
-            this.reset();
+            console.log("rewarding winner");
             break;
         case Table.stages.READY:
+            // reset game
+            console.log("Game getting readied");
             break;
         case Table.stages.DEALT_HOLE_CARDS:
+            // all players readied... reset game
+            this.reset();
+            console.log("Dealing to players");
             this.dealToPlayers();
             break;
         case Table.stages.FLOP:
+            console.log("Dealing flop");
             this.dealFlop();
             break;
         case Table.stages.TURN:
+            console.log("Dealing turn");
             this.dealTurn();
             break;
         case Table.stages.RIVER:
+            console.log("Dealing river");
             this.dealRiver();
             break;
     }
 
     // create a new bet manager holding order (and missing elements) from the previous
     // because it is used only per-round
-    this.playerbetManager = new playerbetManager(this.playerBetManager.players);
+    this.playerbetManager = new PlayerBetManager(this.playerBetManager.players());
 
     return true;
 };
@@ -871,14 +893,17 @@ Table.prototype.continue = function () {
 Table.prototype.reset = function () {
     // TODO game reset here + winners here
     
-    // rotate the players array to change betting order... if we have > 1 players
+    // rotate the players array to change betting order... if we have >= 1 players
     if (this.players.length >= 1) {
-        this.players.push(this.players[0]).pop();
+        console.log('nig');
+        this.players.push(this.players[0]);
+        this.players.shift();
     } else {
         throw "player array is empty.  What should I do?";
     }
 
     // create a new bet manager
+    console.log(this.players.length);
     this.playerBetManager = new PlayerBetManager(this.players);
 };
 
@@ -890,7 +915,7 @@ Table.prototype.reset = function () {
  * @param {number} [amount=0] - Amount bet.
  */
 PlayerBet = function(player, amount) {
-    amount = typeof amount !== 'undefined' ? b : 0;
+    amount = typeof amount !== 'undefined' ? amount : 0;
 };
 
 /**
@@ -928,12 +953,14 @@ PlayerBet.prototype.bet = function (amount) {
  * @constructor
  * @param {Player[]} players - list of players to manage, in betting order
  */
-PlayerBetManager = function (players) {
+var PlayerBetManager = function (players) {
     var manager = this;
 
-    players.forEach = function (player) {
-        manager.playerBets.push(new PlayerBet(player, 0));
-    };
+    players.forEach(
+        function (player) {
+            manager.playerBets.push(new PlayerBet(player, 0));
+        }
+    );
 };
 
 /**
@@ -946,6 +973,22 @@ PlayerBetManager = function (players) {
  * @type {number}
  */
 PlayerBetManager.prototype.lastBetterIndex = -1;
+
+/**
+ * Get all of the players our PlayerBetManager is Managing bets for
+ *
+ * @memberof PlayerBetManager
+ * @instance
+ * @method
+ * @returns {Player[]} - all players in the PlayerBetManager
+ */
+PlayerBetManager.prototype.players = function () {
+    return this.playerBets.map(
+        function (playerBet) {
+            return playerBet.player;
+        }
+    );
+};
 
 /**
  * Return the next required PlayerBet that at least must occur
@@ -965,7 +1008,7 @@ PlayerBetManager.prototype.nextBetter = function () {
     // TODO this better.  It's technically incorrect poker
     // if the previous better was the LAST person in the circle, and everyone is fronting the same money
     // we can move forward
-    if ((this.lastBetterIndex === this.playerBets.length - 1) && utils.all(function (playerBet) { return playerBet.amount === previousBetter.amount; }, playerBets)) {
+    if ((this.lastBetterIndex === this.playerBets.length - 1) && utils.all(function (playerBet) { return playerBet.amount === previousBetter.amount; }, this.playerBets)) {
         return false;
     }
 
