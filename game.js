@@ -238,7 +238,8 @@ var game = function(socketio, db) {
                                     if (table.canBet(player)) {
                                         table.bet(player, data.amount);
                                         data.nextPlayer = table.getNextBetter();
-                                        socketio.in(roomID).emit('bet', data);
+                                        userSocket.broadcast.to(room.id).emit('bet', data);
+                                        userSocket.emit('bet', data);
                                     }
                                     table.continue();
                                 }
@@ -672,6 +673,18 @@ Table.prototype.cards = [];
 Table.prototype.playerBetManager = null;
 
 /**
+ * Get the next betting player
+ *
+ * @memberof Table
+ * @instance
+ * @method
+ * returns {Player}
+ */
+Table.prototype.getNextBetter = function () {
+    return this.playerBetManager.nextBetter().player;
+};
+
+/**
  * Deal hole cards to players
  *
  * @memberof Table
@@ -915,6 +928,8 @@ Table.prototype.reset = function () {
  */
 PlayerBet = function(player, amount) {
     amount = typeof amount !== 'undefined' ? amount : 0;
+    this.player = player;
+    this.amount = amount;
 };
 
 /**
@@ -943,6 +958,8 @@ PlayerBet.prototype.amount = 0;
  * @param {number} amount to bet
  */
 PlayerBet.prototype.bet = function (amount) {
+    // rotate it
+    this.lastBetterIndex = (this.lastBetterIndex + 1) % this.playerBets.length;
     this.amount += amount;
 };
 
@@ -1002,7 +1019,16 @@ PlayerBetManager.prototype.players = function () {
  */
 PlayerBetManager.prototype.nextBetter = function () {
     var previousBetter = this.playerBets[this.lastBetterIndex];
-    var nextBetter = this.playerBets[this.lastBetterIndex + 1 / this.playerBets.length];
+    var nextBetter = this.playerBets[(this.lastBetterIndex + 1) % this.playerBets.length];
+
+    // this means no one has bet yet
+    if (this.lastBetterIndex === -1) {
+        // in that case, we want the very first player
+        return this.playerBets[0].player;
+    }
+
+    console.log(previousBetter);
+    console.log(nextBetter);
 
     // TODO this better.  It's technically incorrect poker
     // if the previous better was the LAST person in the circle, and everyone is fronting the same money

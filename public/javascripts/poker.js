@@ -107,7 +107,7 @@ $('#betButton')[0].onclick = function () {
     socket.emit(
         bet,
         {
-            amount: parseInt($('#betAmountField')),
+            amount: parseInt($('#betAmountField')[0].value),
             // not used on this end... TODO refactor and use a separate object
             nextPlayer: null
         }
