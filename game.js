@@ -207,7 +207,7 @@ var game = function(socketio, db) {
                                              * @fires newPlayerCards
                                              */
                                             function (player) {
-                                                userSocket.emit(
+                                                player.socket.emit(
                                                     newPlayerCards,
                                                     player.hand.toJSON()
                                                 );
