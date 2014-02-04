@@ -144,7 +144,7 @@ var game = function(socketio, db) {
                 function (roomID) {
                     console.log("Listened to a join event");
                     // get the Room object first...
-                    db.Room.find(roomID).success(
+                    db.Room.find(roomID.roomID).success(
                         /**
                          * Function to run when we get our room object back
                          * 
