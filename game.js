@@ -895,7 +895,6 @@ Table.prototype.reset = function () {
     
     // rotate the players array to change betting order... if we have >= 1 players
     if (this.players.length >= 1) {
-        console.log('nig');
         this.players.push(this.players[0]);
         this.players.shift();
     } else {
