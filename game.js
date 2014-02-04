@@ -809,9 +809,11 @@ Table.prototype.isGameBeingPlayed = function () {
  * @memberof Table
  * @instance
  * @method
+ * @param {Player} player - betting player
+ * @param {number} amount - amount bet
  */
 Table.prototype.bet = function (player, amount) {
-    // TODO
+    this.playerBetManager.bet(player, amount);
 };
 
 /**
@@ -822,7 +824,7 @@ Table.prototype.bet = function (player, amount) {
  * @param {Player} player - the player we want to know about
  */
 Table.prototype.canBet = function (player) {
-    return this.playerBetManager.nextBetter() === player;
+    return (this.getNextBetter() === player && this.isGameBeingPlayed());
 };
 
 /**
@@ -836,28 +838,20 @@ Table.prototype.canBet = function (player) {
 Table.prototype.isCanWeContinue = function () {
     switch (this.lastStage) {
         // to continue after having started a game... players must be ready
-        case Table.stages.STARTED:
+        case Table.stages.LOADED:
             return utils.all(function (player) { return player.isReady; }, this.players);
-        // nothing must happen between readying-up and dealing hole cards
-        case Table.stages.READY:
-            // TODO fill out
-            break;
         // to continue after hole cards have been dealt, betting rounds must have occurred
         case Table.stages.DEALT_HOLE_CARDS:
-            // TODO fill out
-            break;
+            return !this.playerBetManager.nextBetter();
         // to continue after flop cards have been dealt, betting rounds must have occurred
         case Table.stages.FLOP:
-            // TODO fill out
-            break;
+            return !this.playerBetManager.nextBetter();
         // to continue after turn card has been dealt, betting rounds must have occurred
         case Table.stages.TURN:
-            // TODO fill out
-            break;
+            return !this.playerBetManager.nextBetter();
         // to continue after river card has been dealt, betting rounds must have occurred
         case Table.stages.RIVER:
-            // TODO fill out
-            break;
+            return !this.playerBetManager.nextBetter();
     }
 
     return false;
@@ -889,8 +883,8 @@ Table.prototype.continue = function () {
             console.log("Game getting readied");
             break;
         case Table.stages.DEALT_HOLE_CARDS:
-            // all players readied... reset game
-            this.reset();
+            // create a new bet manager
+            this.playerBetManager = new PlayerBetManager(this.players);
             console.log("Dealing to players");
             this.dealToPlayers();
             break;
@@ -905,12 +899,13 @@ Table.prototype.continue = function () {
         case Table.stages.RIVER:
             console.log("Dealing river");
             this.dealRiver();
+            this.reset();
             break;
     }
 
     // create a new bet manager holding order (and missing elements) from the previous
     // because it is used only per-round
-    this.playerbetManager = new PlayerBetManager(this.playerBetManager.players());
+    this.playerBetManager = new PlayerBetManager(this.playerBetManager.players());
 
     return true;
 };
@@ -932,10 +927,6 @@ Table.prototype.reset = function () {
     } else {
         throw "player array is empty.  What should I do?";
     }
-
-    // create a new bet manager
-    console.log(this.players.length);
-    this.playerBetManager = new PlayerBetManager(this.players);
 };
 
 /**
@@ -977,8 +968,6 @@ PlayerBet.prototype.amount = 0;
  * @param {number} amount to bet
  */
 PlayerBet.prototype.bet = function (amount) {
-    // rotate it
-    this.lastBetterIndex = (this.lastBetterIndex + 1) % this.playerBets.length;
     this.amount += amount;
 };
 
@@ -989,13 +978,14 @@ PlayerBet.prototype.bet = function (amount) {
  * @param {Player[]} players - list of players to manage, in betting order
  */
 var PlayerBetManager = function (players) {
+    this.playerBets = [];
     var manager = this;
-
     players.forEach(
         function (player) {
             manager.playerBets.push(new PlayerBet(player, 0));
-        }
+    }
     );
+
 };
 
 /**
@@ -1043,11 +1033,8 @@ PlayerBetManager.prototype.nextBetter = function () {
     // this means no one has bet yet
     if (this.lastBetterIndex === -1) {
         // in that case, we want the very first player
-        return this.playerBets[0].player;
+        return this.playerBets[0];
     }
-
-    console.log(previousBetter);
-    console.log(nextBetter);
 
     // TODO this better.  It's technically incorrect poker
     // if the previous better was the LAST person in the circle, and everyone is fronting the same money
@@ -1109,14 +1096,17 @@ PlayerBetManager.prototype.bet = function (player, amount) {
 
     // can all other players HANDLE this bet?
     // TODO handle sidepots
-    if (!(all(this.players, function (x) { return x.coin >= amount; }))) {
+    if (!(utils.all(function (player) { return player.coin >= amount; }, this.players()))) {
         throw "Not every player can afford that";
     }
 
+    // subtract the amount from the player
     player.coin -= amount;
-
-    this.playersWhoRaised.push(player);
+    // commit bet
     this.getPlayerBetByPlayer(player).bet(amount);
+    // rotate the index
+    this.lastBetterIndex = (this.lastBetterIndex + 1) % this.playerBets.length;
+    this.playersWhoRaised.push(player);
 };
 
 /**
@@ -1132,7 +1122,7 @@ PlayerBetManager.prototype.bet = function (player, amount) {
 PlayerBetManager.prototype.getPlayerBetByPlayer = function (player) {
     for (var i = 0; i < this.playerBets.length; i++) {
         var ourPlayerBet = this.playerBets[i];
-        if (ourPlayer.player === player ) {
+        if (ourPlayerBet.player === player ) {
             return ourPlayerBet;
         }
     }
