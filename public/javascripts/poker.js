@@ -75,9 +75,10 @@ socket.on(
     newPlayerCards,
     function (data) {
         console.log("Listened to a newPlayerCards event");
+        console.log(JSON.stringify(data.cards));
         // TODO display them on the game screen
         // for now we just print them into the console
-        $('#holeCardsList').innerHTML = data.cards;
+        $('#holeCardsList')[0].innerHTML = (data.cards.map(function (cardString) { return toSpan(stringToCardCharacter(cardString));}));
     }
 );
 
@@ -121,4 +122,46 @@ $('#betButton')[0].onclick = function () {
 $('#readyButton')[0].onclick = function () {
     console.log("Firing ready event");
     socket.emit(ready);
+};
+
+var stringToCardCharacter = function (cardString) {
+    // this is the value of the back of a card
+    var decimalValue = 127136;
+    var rankCharacter = cardString.charAt(0);
+    var suitCharacter = cardString.charAt(1);
+
+    switch (suitCharacter) {
+        case 'c':
+            decimalValue += 48;
+            break;
+        case 'd':
+            decimalValue += 32;
+            break;
+        case 'h':
+            decimalValue += 16;
+            break;
+        case 's':
+            decimalValue += 0;
+            break;
+    }
+
+    if (rankCharacter === 'A') {
+        decimalValue += 1;
+    } else if (rankCharacter === 'K') {
+        decimalValue += 14;
+    } else if (rankCharacter === 'Q') {
+        decimalValue += 13;
+    } else if (rankCharacter === 'J') {
+        decimalValue += 12;
+    // in this case, we must be numeric
+    } else {
+        decimalValue += parseInt(rankCharacter);
+    }
+
+    return String.fromCharCode(decimalValue);
+
+};
+
+var toSpan = function (string, klass) {
+    return "<span class='" + klass + "'>" + string + '</span>';
 };
