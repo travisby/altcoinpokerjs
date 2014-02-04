@@ -274,6 +274,9 @@ var game = function(socketio, db) {
  * @param {char} suit - from Card.*
  */
 var Card = function(rank, suit) {
+    this.rank = null;
+    this.suit = null;
+
     // make sure rank is correct
     if (!((2 <= rank <= 9) || rank === 'T' || rank === 'J' || rank === 'Q' || rank === 'K' || rank === 'A'  )) {
         console.log(rank);
@@ -402,6 +405,7 @@ Card.isActuallyACard = function (card) {
  * @param {Card[]} cards - list of cards
  */
 var Hand = function(cards) {
+    this.cards = [];
     // Check that we are in fact, cards
     if (!utils.all(Card.isActuallyACard, cards)) {
         throw "Not all items in hand are cards";
@@ -452,6 +456,8 @@ Hand.prototype.toJSON = function () {
  * @param {Card[]} cards - list of cards in the deck
  */
 var Deck = function(cards) {
+    this.cards = [];
+
     // Check that we are in fact, cards
     if (!utils.all(Card.isActuallyACard, cards)) {
         throw "Not all items in hand are cards";
@@ -552,6 +558,11 @@ var PokerDeck = function() {
  * @param {number} coin - how much money they are playing with
  */
 var Player = function(socket, coin) {
+    this.coket = null;
+    this.coin = 0;
+    this.hand = null
+    this.isReady = false;
+
     this.socket = socket;
     this.coin = coin;
 };
@@ -599,6 +610,12 @@ Player.prototype.isReady = false;
  * @param {db.Room} room - one specific room that we will update with our info
  */
 var Table = function(room) {
+    this.room = null;
+    this.players = [];
+    this.pot = 0;
+    this.lastStage = Table.stages.LOADED;
+    this.cards = [];
+    this.playerBetManager = new PlayerBetManager([]);
     // we need the full DB object
 
     // deal a new deck
@@ -937,6 +954,9 @@ Table.prototype.reset = function () {
  * @param {number} [amount=0] - Amount bet.
  */
 PlayerBet = function(player, amount) {
+    this.player = null;
+    this.amount = 0;
+
     amount = typeof amount !== 'undefined' ? amount : 0;
     this.player = player;
     this.amount = amount;
@@ -978,7 +998,10 @@ PlayerBet.prototype.bet = function (amount) {
  * @param {Player[]} players - list of players to manage, in betting order
  */
 var PlayerBetManager = function (players) {
+    this.lastBetterIndex = -1;
     this.playerBets = [];
+    this.playersWhoRaised = [];
+
     var manager = this;
     players.forEach(
         function (player) {
