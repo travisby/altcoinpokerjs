@@ -235,13 +235,14 @@ var game = function(socketio, db) {
                                  */
                                 function (data) {
                                     console.log("Listened to a bet event");
+                                    console.log(data);
                                     if (table.canBet(player)) {
+                                        console.log("doing bet");
                                         table.bet(player, data.amount);
-                                        data.nextPlayer = table.getNextBetter();
-                                        userSocket.broadcast.to(room.id).emit('bet', data);
-                                        userSocket.emit('bet', data);
+                                        userSocket.broadcast.to(room.id).emit('bet');
+                                        userSocket.emit('bet');
+                                        table.continue();
                                     }
-                                    table.continue();
                                 }
                             );
                         }
