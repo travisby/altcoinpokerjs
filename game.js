@@ -1117,6 +1117,16 @@ PlayerBetManager.prototype.bet = function (player, amount) {
         throw "User does not have enough money to play";
     }
 
+    // is he folding?
+    if (amount <= 0 && utils.any(function (playerBet) { return playerBet.amount > amount; }, this.playerBets)) {
+        var test = this.playerBets.length;
+        this.playerBets.splice(this.playerBets.indexOf(this.getPlayerBetByPlayer(player)), 1);
+
+        if (this.playerBets.length >= test) {
+            throw "something went wrong removing a user...";
+        }
+    }
+
     // can all other players HANDLE this bet?
     // TODO handle sidepots
     if (!(utils.all(function (player) { return player.coin >= amount; }, this.players()))) {
