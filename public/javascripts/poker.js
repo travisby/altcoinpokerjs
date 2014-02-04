@@ -158,7 +158,7 @@ var stringToCardCharacter = function (cardString) {
         decimalValue += parseInt(rankCharacter);
     }
 
-    return String.fromCharCode(decimalValue);
+    return '&#' + decimalValue;
 
 };
 
