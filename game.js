@@ -558,9 +558,9 @@ var PokerDeck = function() {
  * @param {number} coin - how much money they are playing with
  */
 var Player = function(socket, coin) {
-    this.coket = null;
+    this.socket = null;
     this.coin = 0;
-    this.hand = null
+    this.hand = null;
     this.isReady = false;
 
     this.socket = socket;
