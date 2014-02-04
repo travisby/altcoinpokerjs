@@ -49,7 +49,7 @@ db.sequelize.sync({}).complete(
                 server = http.createServer(app);
                 socketio = socketio.listen(server);
                 // add events to socketio
-                game.game(socketio);
+                game.game(socketio, db);
                 server.listen(app.get('port'), function () {
                   console.log('Express server listening on port ' + app.get('port'));
                 });

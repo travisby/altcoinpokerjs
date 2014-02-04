@@ -4,4 +4,13 @@ block content
     var roomID = #{room.id};
     var roomName = "#{room.name}";
   script(src='/socket.io/socket.io.js')
+  div
+      span(id='holeCardsList')
+  div
+      span(id='tableCardsList')
+  div
+      input(id='betAmountField', type='text')
+      button(id='betButton', type='button') Bet
+  div
+      button(id='readyButton', type='button') Ready
   script(src='/javascripts/poker.js')

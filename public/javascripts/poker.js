@@ -60,9 +60,9 @@ var ready = 'ready';
  */
 var disconnect = 'disconnect';
 
-var socket = io.connect('/pokersocket');
+var socket = io.connect('http://localhost:8000');
 socket.on('connect', function (data) {
-    console.log("asking to join room " + roomID);
+    console.log("Listened to a connect event");
     socket.emit('join', {roomID: roomID});
 });
 
@@ -74,9 +74,10 @@ socket.on('connect', function (data) {
 socket.on(
     newPlayerCards,
     function (data) {
+        console.log("Listened to a newPlayerCards event");
         // TODO display them on the game screen
         // for now we just print them into the console
-        console.log(data.cards);
+        $('#holeCardsList').innerHTML = data.cards;
     }
 );
 
@@ -90,6 +91,7 @@ socket.on(
 socket.on(
     deal,
     function () {
+        console.log("Listened to a deal event");
         // TODO draw cards being dealt
     }
 );
@@ -99,7 +101,8 @@ socket.on(
  *
  * @fires bet
  */
-$('#betButton').onClick = function () {
+$('#betButton')[0].onclick = function () {
+    console.log("Firing bet event");
     socket.emit(
         bet,
         {
@@ -115,6 +118,7 @@ $('#betButton').onClick = function () {
  *
  * @fires ready
  */
-$('#readyButton').onClick = function () {
+$('#readyButton')[0].onclick = function () {
+    console.log("Firing ready event");
     socket.emit(ready);
 };

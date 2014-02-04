@@ -17,13 +17,15 @@ module.exports = function(sequelize, DataTypes) {
                     return new game.Deck(
                         this._deck.split(',').map(
                             function (cardString) {
+                                var rank = null;
+                                var suit = null;
                                 // then we must be a two-character thingy
                                 if (cardString.length > 2) {
-                                    var rank = cardString[0] + cardString[1];
+                                    rank = cardString[0] + cardString[1];
                                 } else {
-                                    var rank = cardString[0];
+                                    rank = cardString[0];
                                 }
-                                var suit = cardString[1];
+                                suit = cardString[1];
                                 return new game.Card(rank, suit);
                             }
                     ));

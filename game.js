@@ -1,6 +1,5 @@
 // loaded modules
 var utils = require('./utils.js');
-var db = require('./models/');
 var PokerEvaluator = require('poker-evaluator');
 
 /**
@@ -91,13 +90,15 @@ var rooms = {};
  * Adds a bunch of events to the socketio object
  *
  * @param {SocketIO} socketio
+ * @param {Sequelize} db
  */
-var game = function(socketio) {
+var game = function(socketio, db) {
     /**
      * Event for users connecting to the socketio socket
      *
      * @listens connection
      */
+
     socketio.on(
         connection,
         /**
@@ -110,6 +111,7 @@ var game = function(socketio) {
          * @param {SocketIO} userSocket -- connected user socket
          */
         function (userSocket) {
+            console.log("Listened to a connection event");
 
             /**
              * The currently connected user as a player
@@ -134,6 +136,7 @@ var game = function(socketio) {
                  * @param {number} roomID the id of the room we are joining
                  */
                 function (roomID) {
+                    console.log("Listened to a join event");
                     // get the Room object first...
                     db.Room.find(roomID).success(
                         /**
@@ -151,7 +154,6 @@ var game = function(socketio) {
 
                             // instantiate our user now
                             player = new Player(userSocket, room.buyin);
-                            console.log(room);
                             userSocket.join(room);
 
                             // if we haven't instantiated anything yet...
@@ -162,7 +164,7 @@ var game = function(socketio) {
 
                             // add our user if we are not full to the table
                             if (table.players.length < MAX_PLAYERS) {
-                                table.players.append(player);
+                                table.players.push(player);
                             }
 
                             // Now that we have the room...
@@ -181,6 +183,7 @@ var game = function(socketio) {
                                  * @fires newPlayerCards
                                  */
                                 function () {
+                                    console.log("Listened to a ready event");
 
                                     // only ready if the game is ready-able
                                     if (!table.isGameBeingPlayed) {
@@ -224,6 +227,7 @@ var game = function(socketio) {
                                  * @fires bet
                                  */
                                 function (data) {
+                                    console.log("Listened to a bet event");
                                     if (table.canBet(player)) {
                                         table.bet(player, data.amount);
                                         data.nextPlayer = table.getNextBetter();
@@ -244,6 +248,7 @@ var game = function(socketio) {
             userSocket.on(
                 disconnect,
                 function () {
+                    console.log("Listened to a disconnect event");
                     // TODO reconnect stuff here
                 }
             );
@@ -587,6 +592,7 @@ Player.prototype.isReady = false;
 var Table = function(room) {
     // we need the full DB object
     this.room = room;
+    this.playerBetManager = new PlayerBetManager([]);
 };
 
 /**
@@ -616,6 +622,14 @@ Table.stages = {
 Table.prototype.room = null;
 
 /**
+ * Players of a particular table
+ * @memberof! Table
+ * @instance
+ * @type {Player[]}
+ */
+Table.prototype.players = [];
+
+/**
  * The cash money in the pot
  *
  * @memberof! Table
@@ -632,15 +646,6 @@ Table.prototype.pot = 0;
  * @type {number}
  */
 Table.prototype.lastStage = Table.stages.STARTED;
-
-/**
- * List of players, in which order stuff should happen
- *
- * @memberof! Table
- * @instance
- * @type {Player[]}
- */
-Table.prototype.playingPlayersInOrder = [];
 
 /**
  * Current cards on the table
@@ -766,6 +771,17 @@ Table.prototype.bet = function (player, amount) {
 };
 
 /**
+ * Decide whether a particular player CAN bet right now
+ * @memberof Table
+ * @instance
+ * @method
+ * @param {Player} player - the player we want to know about
+ */
+Table.prototype.canBet = function (player) {
+    return this.playerBetManager.nextBetter() === player;
+};
+
+/**
  * Can we continue?
  *
  * @memberof Table
@@ -837,6 +853,12 @@ Table.prototype.continue = function () {
             this.dealRiver();
             break;
     }
+
+    // create a new bet manager holding order (and missing elements) from the previous
+    // because it is used only per-round
+    this.playerbetManager = new playerbetManager(this.playerBetManager.players);
+
+    return true;
 };
 
 /**
@@ -848,6 +870,16 @@ Table.prototype.continue = function () {
  */
 Table.prototype.reset = function () {
     // TODO game reset here + winners here
+    
+    // rotate the players array to change betting order... if we have > 1 players
+    if (this.players.length >= 1) {
+        this.players.push(this.players[0]).pop();
+    } else {
+        throw "player array is empty.  What should I do?";
+    }
+
+    // create a new bet manager
+    this.playerBetManager = new PlayerBetManager(this.players);
 };
 
 /**
@@ -929,6 +961,16 @@ PlayerBetManager.prototype.lastBetterIndex = -1;
 PlayerBetManager.prototype.nextBetter = function () {
     var previousBetter = this.playerBets[this.lastBetterIndex];
     var nextBetter = this.playerBets[this.lastBetterIndex + 1 / this.playerBets.length];
+
+    // TODO this better.  It's technically incorrect poker
+    // if the previous better was the LAST person in the circle, and everyone is fronting the same money
+    // we can move forward
+    if ((this.lastBetterIndex === this.playerBets.length - 1) && utils.all(function (playerBet) { return playerBet.amount === previousBetter.amount; }, playerBets)) {
+        return false;
+    }
+
+    // if that wasn't the case, we can say who the next better is, and how much they need to bet
+    return new PlayerBet(nextBetter.player, (previousBetter.amount - nextBetter.amount));
 };
 
 /**
@@ -960,8 +1002,8 @@ PlayerBetManager.prototype.playersWhoRaised = [];
  */
 PlayerBetManager.prototype.isHasPlayerBet = function (player) {
     // if this is NOT -1, then player has bet
-    return this.playersWhoRaised.indexOf(player) != -1
-}
+    return this.playersWhoRaised.indexOf(player) != -1;
+};
 
 /**
  * Bet for a player

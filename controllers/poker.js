@@ -41,7 +41,7 @@ module.exports.controller = function(app) {
                             } else {
                                 room.setCurrency(currency);
                                 console.log("Created room " + room.id);
-                                res.redirect('/poker?id=' + room.id);
+                                res.redirect('/poker/' + room.id);
                             }
                         }
                     );
