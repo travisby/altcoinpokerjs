@@ -584,9 +584,22 @@ var Player = function(socket, coin) {
     this.coin = 0;
     this.hand = null;
     this.isReady = false;
+    this.username = Player.getRandomUserName();
 
     this.socket = socket;
     this.coin = coin;
+};
+
+// TODO actually sit here and think about this instead of coming up with a 5s hack
+Player.usedUsernames = [];
+Player.usernames = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'];
+Player.getRandomUserName = function () {
+    var username = Player.usernames[Math.floor(Math.random() * Player.usernames.length)];
+    if (Player.usedUsernames.indexOf(username) != -1) {
+        // try again
+        return Player.getRandomUserName();
+    }
+    return username;
 };
 
 /**
@@ -619,11 +632,20 @@ Player.prototype.hand = null;
 /**
  * Did this player ready-up?
  *
- * @memberof! Hand
+ * @memberof! Player
  * @instance
  * @type {bool}
  */
 Player.prototype.isReady = false;
+
+/**
+ * Player's username
+ *
+ * @memberof! Player
+ * @instance
+ * @type {String}
+ */
+Player.prototype.username = '';
 
 /**
  * Table of a poker room
