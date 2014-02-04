@@ -133,16 +133,16 @@ var stringToCardCharacter = function (cardString) {
     switch (suitCharacter) {
         case 'c':
             decimalValue += 48;
-            break;
+        break;
         case 'd':
             decimalValue += 32;
-            break;
+        break;
         case 'h':
             decimalValue += 16;
-            break;
+        break;
         case 's':
             decimalValue += 0;
-            break;
+        break;
     }
 
     if (rankCharacter === 'A') {
@@ -153,8 +153,8 @@ var stringToCardCharacter = function (cardString) {
         decimalValue += 13;
     } else if (rankCharacter === 'J') {
         decimalValue += 12;
-    // in this case, we must be numeric
     } else {
+        // in this case, we must be numeric
         decimalValue += parseInt(rankCharacter);
     }
 
