@@ -600,6 +600,10 @@ Player.prototype.isReady = false;
  */
 var Table = function(room) {
     // we need the full DB object
+
+    // deal a new deck
+    this.deck = PokerDeck();
+    this.deck.shuffle();
     this.room = room;
     this.playerBetManager = new PlayerBetManager([]);
 };
@@ -696,7 +700,7 @@ Table.prototype.dealToPlayers = function () {
     // We will create players.length piles of two cards, to simulate real dealing
     // Rather than popping two cards off at a time for a player
     var piles = [];
-    var deck = this.room.deck;
+    var deck = this.deck;
     var players = this.players;
 
     // make sure piles is full of arrays
@@ -718,9 +722,15 @@ Table.prototype.dealToPlayers = function () {
     }
 
     // and finally, save the (changed) deck object into the room
-    this.room.deck = deck;
+    // TODO Uncomment
+    this.deck = deck;
     this.room.save();
 };
+
+/**
+ * @type {Deck}
+ */
+Table.prototype.deck = PokerDeck();
 
 /**
  * Deal the flop to the table
@@ -732,7 +742,10 @@ Table.prototype.dealToPlayers = function () {
  */
 Table.prototype.dealFlop = function () {
     for (var i = 0; i < 3; i ++) {
-        this.cards.push(this.deck.pop());
+        var deck = this.deck;
+        this.cards.push(deck.pop());
+        this.deck = deck;
+        this.room.save();
     }
 };
 
@@ -744,7 +757,10 @@ Table.prototype.dealFlop = function () {
  * @method
  */
 Table.prototype.dealTurn = function () {
-    this.cards.push(this.deck.pop());
+    var deck = this.deck;
+    this.cards.push(deck.pop());
+    this.deck = deck;
+    this.room.save();
 };
 
 /**
@@ -755,7 +771,10 @@ Table.prototype.dealTurn = function () {
  * @method
  */
 Table.prototype.dealRiver = function () {
-    this.cards.push(this.deck.pop());
+    var deck = this.deck;
+    this.cards.push(deck.pop());
+    this.deck = deck;
+    this.room.save();
 };
 
 /**
