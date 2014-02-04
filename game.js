@@ -617,12 +617,11 @@ var Table = function(room) {
  * @static
  */
 Table.stages = {
-    STARTED: 0,
-    READY: 1,
-    DEALT_HOLE_CARDS: 2,
-    FLOP: 3,
-    TURN: 4,
-    RIVER: 5
+    LOADED: 0,
+    DEALT_HOLE_CARDS: 1,
+    FLOP: 2,
+    TURN: 3,
+    RIVER: 4
 };
 
 /**
@@ -658,7 +657,7 @@ Table.prototype.pot = 0;
  * @instance
  * @type {number}
  */
-Table.prototype.lastStage = Table.stages.STARTED;
+Table.prototype.lastStage = Table.stages.LOADED;
 
 /**
  * Current cards on the table
@@ -793,7 +792,7 @@ Table.prototype.isCanWeStart = function () {
     if (
         this.players.length >= MIN_PLAYERS_TO_START &&
         all(this.players, function (player) { return player.isReady; }) &&
-        this.lastStage === Table.stages.STARTED
+        this.lastStage === Table.stages.LOADED
    ) {
         return true;
    }
@@ -801,8 +800,8 @@ Table.prototype.isCanWeStart = function () {
 };
 
 Table.prototype.isGameBeingPlayed = function () {
-    // our game is always being played UNLESS we are in the "STARTED" stage
-    return this.lastStage != Table.stages.STARTED;
+    // our game is always being played UNLESS we are in the "LOADED" stage
+    return this.lastStage != Table.stages.LOADED;
 };
 
 /**
@@ -879,7 +878,7 @@ Table.prototype.continue = function () {
     // deal next set of cards, or finish the game
 
     // go to the next stage
-    this.lastStage = (this.lastStage + 1) % Table.stages.RIVER + 1;
+    this.lastStage = (this.lastStage + 1) % (Table.stages.RIVER + 1);
 
     switch (this.lastStage) {
         case Table.stages.STARTED:
