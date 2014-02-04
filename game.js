@@ -159,7 +159,7 @@ var game = function(socketio, db) {
                             var table = null;
 
                             // instantiate our user now
-                            player = new Player(userSocket, room.buyin);
+                            player = new Player(userSocket, parseInt(room.buyin));
                             userSocket.join(room);
 
                             // if we haven't instantiated anything yet...
