@@ -32,6 +32,15 @@ var join = 'join';
 var newPlayerCards = 'newPlayerCards';
 
 /**
+ * Event for sending community cards
+ *
+ * @event newCommunityCards
+ * @type {object}
+ * @property {string} cards - ',' delimited list of cards
+ */
+var newCommunityCards = 'newCommunityCards';
+
+/**
  * Event to broadcast that the hand has been dealt
  *
  * @event deal
@@ -79,6 +88,22 @@ socket.on(
         // TODO display them on the game screen
         // for now we just print them into the console
         $('#holeCardsList')[0].innerHTML = (data.cards.map(function (cardString) { return toSpan(stringToCardCharacter(cardString));}));
+    }
+);
+
+/**
+ * Listens for newCommunityCards; event where we are dealt new community cards
+ *
+ * @listens newCommunityCards
+ */
+socket.on(
+    newCommunityCards,
+    function (data) {
+        console.log("Listened to a newCommunityCardsCards event");
+        console.log(JSON.stringify(data.cards));
+        // TODO display them on the game screen
+        // for now we just print them into the console
+        $('#communityCardsList')[0].innerHTML = (data.cards.map(function (cardString) { return toSpan(stringToCardCharacter(cardString));}));
     }
 );
 
@@ -153,6 +178,8 @@ var stringToCardCharacter = function (cardString) {
         decimalValue += 13;
     } else if (rankCharacter === 'J') {
         decimalValue += 12;
+    } else if (rankCharacter === 'T') {
+        decimalValue += 10;
     } else {
         // in this case, we must be numeric
         decimalValue += parseInt(rankCharacter);

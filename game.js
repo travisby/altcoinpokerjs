@@ -36,6 +36,15 @@ var join = 'join';
 var newPlayerCards = 'newPlayerCards';
 
 /**
+ * Event for sending hole cards to players
+ *
+ * @event newPlayerCards
+ * @type {object}
+ * @property {string} cards - ',' delimited list of cards
+ */
+var newCommunityCards = 'newCommunityCards';
+
+/**
  * Event to broadcast that the hand has been dealt
  *
  * @event deal
@@ -232,8 +241,11 @@ var game = function(socketio, db) {
                                  *
                                  * @param {betObj} data
                                  * @fires bet
+                                 * @fires newCommunityCards
                                  */
                                 function (data) {
+                                    var isContinued = false;
+                                    var newCommunityCardsObject = null;
                                     console.log("Listened to a bet event");
                                     console.log(data);
                                     if (table.canBet(player)) {
@@ -241,7 +253,17 @@ var game = function(socketio, db) {
                                         table.bet(player, data.amount);
                                         userSocket.broadcast.to(room.id).emit('bet');
                                         userSocket.emit('bet');
-                                        table.continue();
+                                        isContinued = table.continue();
+
+                                        if (isContinued && Table.stages.FLOP <= table.lastStage <= Table.stages.RIVER) {
+                                            // Signal the new cards
+                                             newCommunityCardsObject = table.cards.toJSON();
+                                            // tell the entire room cards have been dealt
+                                            userSocket.broadcast.to(room.id).emit(newCommunityCards, newCommunityCardsObject);
+                                            userSocket.emit(newCommunityCards, newCommunityCardsObject);
+                                        } else if (Table.stages.WINNER) {
+                                            // TODO deal with winners here
+                                        }
                                     }
                                 }
                             );
@@ -614,8 +636,9 @@ var Table = function(room) {
     this.players = [];
     this.pot = 0;
     this.lastStage = Table.stages.LOADED;
-    this.cards = [];
+    this.cards = null;
     this.playerBetManager = new PlayerBetManager([]);
+    this.winner = null;
     // we need the full DB object
 
     // deal a new deck
@@ -638,7 +661,8 @@ Table.stages = {
     DEALT_HOLE_CARDS: 1,
     FLOP: 2,
     TURN: 3,
-    RIVER: 4
+    RIVER: 4,
+    WINNER: 5
 };
 
 /**
@@ -682,7 +706,7 @@ Table.prototype.lastStage = Table.stages.LOADED;
  * @instance
  * @type {Card[]}
  */
-Table.prototype.cards = [];
+Table.prototype.cards = null;
 
 /**
  * player bet manager obj
@@ -692,6 +716,15 @@ Table.prototype.cards = [];
  * @type {PlayerBetManager}
  */
 Table.prototype.playerBetManager = null;
+
+/**
+ * Winner of the game
+ *
+ * @memberof! Table
+ * @instance
+ * @type {Player}
+ */
+Table.prototype.winner = null;
 
 /**
  * Get the next betting player
@@ -757,12 +790,14 @@ Table.prototype.deck = PokerDeck();
  * @todo do it
  */
 Table.prototype.dealFlop = function () {
+    var cards = [];
+    var deck = this.deck;
     for (var i = 0; i < 3; i ++) {
-        var deck = this.deck;
-        this.cards.push(deck.pop());
-        this.deck = deck;
-        this.room.save();
+        cards.push(deck.pop());
     }
+    this.deck = deck;
+    this.room.save();
+    this.cards = new Hand(cards);
 };
 
 /**
@@ -774,7 +809,7 @@ Table.prototype.dealFlop = function () {
  */
 Table.prototype.dealTurn = function () {
     var deck = this.deck;
-    this.cards.push(deck.pop());
+    this.cards.cards.push(deck.pop());
     this.deck = deck;
     this.room.save();
 };
@@ -788,7 +823,7 @@ Table.prototype.dealTurn = function () {
  */
 Table.prototype.dealRiver = function () {
     var deck = this.deck;
-    this.cards.push(deck.pop());
+    this.cards.cards.push(deck.pop());
     this.deck = deck;
     this.room.save();
 };
@@ -889,14 +924,10 @@ Table.prototype.continue = function () {
     // deal next set of cards, or finish the game
 
     // go to the next stage
-    this.lastStage = (this.lastStage + 1) % (Table.stages.RIVER + 1);
+    this.lastStage = (this.lastStage + 1) % (Table.stages.WINNER + 1);
 
     switch (this.lastStage) {
-        case Table.stages.STARTED:
-            console.log("rewarding winner");
-            break;
-        case Table.stages.READY:
-            // reset game
+        case Table.stages.LOADED:
             console.log("Game getting readied");
             break;
         case Table.stages.DEALT_HOLE_CARDS:
@@ -916,6 +947,16 @@ Table.prototype.continue = function () {
         case Table.stages.RIVER:
             console.log("Dealing river");
             this.dealRiver();
+            break;
+        case Table.stages.WINNER:
+            var playersSortedByHandValue = this.players.sort(
+                function (player1, player2) {
+                    console.log("rewarding winner");
+                    return player2.hand.getEval().value - player1.hand.getEval().value;
+                }
+            );
+            // TODO multiple winners
+            this.table.winner = playersSortedByHandValue[0];
             this.reset();
             break;
     }

@@ -5,9 +5,11 @@ block content
     var roomName = "#{room.name}";
   script(src='/socket.io/socket.io.js')
   div
+      span Hole Cards:
       span(id='holeCardsList')
   div
-      span(id='tableCardsList')
+      span Community Cards: 
+      span(id='communityCardsList')
   div
       input(id='betAmountField', type='text')
       button(id='betButton', type='button') Bet
