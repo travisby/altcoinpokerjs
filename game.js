@@ -284,6 +284,12 @@ var game = function(socketio, db) {
                 function () {
                     console.log("Listened to a disconnect event");
                     // TODO reconnect stuff here
+                    for (var i = 0; i < table.players.length; i++) {
+                        if (table.players[i].socket === userSocket) {
+                            // remove this player
+                            table.players.slice(i, 1);
+                        }
+                    }
                 }
             );
         }
