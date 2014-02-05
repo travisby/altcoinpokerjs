@@ -3,7 +3,6 @@ module.exports = function (mongoose) {
 
     var schema = new mongoose.Schema(
         {
-            deck: String,
             name: String,
             buyin: Number,
             currency: {type: mongoose.Schema.ObjectId, ref: 'currencies'},
