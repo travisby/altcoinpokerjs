@@ -56,7 +56,7 @@ fs.readdirSync('./controllers')
     function (file) {
         if(file.substr(-3) == '.js') {
             route = require('./controllers/' + file);
-            route.controller(app);
+            route.controller(app, passport);
         }
     }
 );
