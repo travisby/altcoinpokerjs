@@ -463,7 +463,7 @@ Hand.prototype.cards = [];
  */
 Hand.prototype.getEval = function () {
     // TODO create a better representation
-    // return PokerEvaluator.evalHand(this.cards);
+    return PokerEvaluator.evalHand(this.cards.map(function (x) { return x.toJSON(); }));
 };
 
 /**
@@ -475,10 +475,15 @@ Hand.prototype.getEval = function () {
  * @returns {object}
  */
 Hand.prototype.toJSON = function () {
-    return {
-        cards: this.cards.map(function (x) { return x.toJSON(); }),
-        stats: this.getEval()
-    };
+    var obj = {};
+
+    obj.cards = this.cards.map(function (x) { return x.toJSON(); });
+
+    // PokerHand.evaluator will fail on cards.length === 2
+    if (this.cards.length === 3 || this.cards.length === 5 || this.cards.length === 7) {
+        obj.stats = this.getEval();
+    }
+    return obj;
 };
 
 /**
