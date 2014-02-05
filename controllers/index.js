@@ -1,15 +1,15 @@
-var db = require('../models/');
 module.exports.controller = function(app) {
+    var db = app.mongoose;
     // routes
     app.get(
         '/',
         function(req, res) {
-            db.Currency.all()
-            .success(
-                function (coins) {
-                    db.Room.all()
-                    .success(
-                        function (rooms) {
+            db.Room.find(
+                {},
+                function (error, rooms) {
+                    db.Currency.find(
+                        {},
+                        function (error, coins) {
                             res.render(
                                 'index',
                                 {

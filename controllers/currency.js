@@ -1,25 +1,20 @@
-var db = require('../models/');
 module.exports.controller = function(app) {
+    var db = app.mongoose;
     // routes
     app.post(
         '/currency/new',
         function(req, res) {
-            db.Currency.create(
-                {
-                    name: req.body.name,
-                    symbol: req.body.symbol
-                }
-            ).complete(
-                function (err, currency) {
+            var newCurrency = new db.Currency();
+            newCurrency.name = req.body.name;
+            newCurrency.symbol = req.body.symbol;
+            newCurrency.save(
+                function (err) {
                     if (err) {
-                        console.log(err);
-                        throw err
-                    } else {
-                        console.log("created " + currency.id);
-                        res.redirect('/');
+                        throw err;
                     }
                 }
             );
+            res.redirect('/');
         }
     );
 };
