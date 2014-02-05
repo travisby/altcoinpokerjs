@@ -1,15 +1,13 @@
 module.exports = function (mongoose) {
-    var model = null;
     var collection = 'users';
-    var Schema = mongoose.Schema;
-    var ObjectId = Schema.ObjectId;
 
     var schema = new mongoose.Schema(
         {
-            username: String
+            username: String,
+            players: [{type: mongoose.Schema.ObjectId, ref: 'players'}],
+            payouts: [{type: mongoose.Schema.ObjectId, ref: 'payouts'}]
         }
     );
-    model = mongoose.model(collection, schema);
 
-    return model;
+    return mongoose.model(collection, schema);
 };

@@ -1,17 +1,15 @@
 module.exports = function (mongoose) {
-    var model = null;
-    var collection = 'currency';
-    var Schema = mongoose.Schema;
-    var ObjectId = Schema.ObjectId;
+    var collection = 'rooms';
 
     var schema = new mongoose.Schema(
         {
             deck: String,
             name: String,
-            buyin: Number
+            buyin: Number,
+            currency: {type: mongoose.Schema.ObjectId, ref: 'currencies'},
+            players: [{type: mongoose.Schema.ObjectId, ref: 'players'}]
         }
     );
-    model = mongoose.model(collection, schema);
 
-    return model;
+    return mongoose.model(collection, schema);
 };
