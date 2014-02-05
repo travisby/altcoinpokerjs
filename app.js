@@ -13,6 +13,8 @@ var mongoose = require('mongoose');
 var uristring = process.env.MONGOLAB_URI || process.env.MONGOHQ_URL || 'mongodb://localhost/cryptopoker';
 var passport = require('passport');
 var SECRET = process.env.SESSION_SECRET || "G17HKGJxb4D|6>)g8ESYtqi3B7pWc@AD'HToKp8#[>c&qR8+C/`JQ$VDClx52g/";
+var passportSocketIo = require('passport.socketio');
+var sessionStore = new express.session.MemoryStore();
 
 var app = express();
 
@@ -28,7 +30,7 @@ app.use(express.methodOverride());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.cookieParser());
 app.use(express.bodyParser());
-app.use(express.session({secret: SECRET}));
+app.use(express.session({secret: SECRET, store: sessionStore}));
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(app.router);
@@ -69,6 +71,20 @@ mongoose.connect(
         } else {
             server = http.createServer(app);
             socketio = socketio.listen(server);
+            socketio.set(
+                'authorization',
+                passportSocketIo.authorize(
+                    {
+                    cookieParser: express.cookieParser,
+                    key: 'connect.sid',
+                    secret: SECRET,
+                    store: sessionStore,
+                    success: function (data, accept) { accept(null, true); },
+                    fail: function (data, message, error, accept) { accept(null, false); } 
+                    }
+                )
+            );
+
             // add events to socketio
             game.game(socketio, models);
             server.listen(app.get('port'), function () {

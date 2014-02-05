@@ -1,9 +1,12 @@
+var ensureLoggedIn = require('connect-ensure-login').ensureLoggedIn;
+
 module.exports.controller = function(app) {
     var db = app.mongoose;
     var game = require('../game.js');
     // routes
     app.get(
         '/poker/:id',
+        ensureLoggedIn('/login'),
         function (req, res) {
             db.Room.findById(
                 req.params.id,
@@ -21,6 +24,7 @@ module.exports.controller = function(app) {
 
     app.post(
         '/poker/new',
+        ensureLoggedIn('/login'),
         function (req, res) {
             db.Currency.findById(
                 req.body.currencyID,
