@@ -1,9 +1,16 @@
-module.exports = function(sequelize, DataTypes) {
-    return sequelize.define(
-            "Currency",
-            {
-                name: DataTypes.STRING(10),
-                symbol: DataTypes.STRING(4)
-            }
+module.exports = function (mongoose) {
+    var model = null;
+    var collection = 'currency';
+    var Schema = mongoose.Schema;
+    var ObjectId = Schema.ObjectId;
+
+    var schema = new mongoose.Schema(
+        {
+            name: String,
+            symbol: String
+        }
     );
+    model = mongoose.model(collection, schema);
+
+    return model;
 };

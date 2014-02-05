@@ -6,10 +6,11 @@
 var express = require('express');
 var http = require('http');
 var path = require('path');
-var db = require('./models');
 var socketio = require('socket.io');
 var fs = require('fs');
 var game = require('./game.js');
+var mongoose = require('mongoose');
+var uristring = process.env.MONGOLAB_URI || process.env.MONGOHQ_URL || 'mongodb://localhost/cryptopoker';
 
 var app = express();
 
@@ -24,6 +25,13 @@ app.use(express.urlencoded());
 app.use(express.methodOverride());
 app.use(app.router);
 app.use(express.static(path.join(__dirname, 'public')));
+
+var models = {};
+// models.currency = require('./models/currency.js')(mongoose).model;
+// models.payout = require('./models/payout.js')(mongoose).model;
+// models.player = require('./models/player.js')(mongoose).model;
+// models.room = require('./models/room.js')(mongoose).model;
+models.user = require('./models/user.js')(mongoose);
 
 // development only
 if ('development' == app.get('env')) {
@@ -41,18 +49,19 @@ fs.readdirSync('./controllers')
     }
 );
 
-db.sequelize.sync({}).complete(
-        function (err) {
-            if (err) {
-                throw err;
-            } else {
-                server = http.createServer(app);
-                socketio = socketio.listen(server);
-                // add events to socketio
-                game.game(socketio, db);
-                server.listen(app.get('port'), function () {
-                  console.log('Express server listening on port ' + app.get('port'));
-                });
-            }
+mongoose.connect(
+    uristring,
+    function (err, res) {
+        if (err) {
+            throw err;
+        } else {
+            server = http.createServer(app);
+            socketio = socketio.listen(server);
+            // add events to socketio
+            game.game(socketio, models);
+            server.listen(app.get('port'), function () {
+              console.log('Express server listening on port ' + app.get('port'));
+            });
         }
+    }
 );

@@ -1,9 +1,16 @@
-module.exports = function(sequelize, DataTypes) {
-    return sequelize.define(
-            "Payout",
-            {
-                address: DataTypes.STRING(34),
-                value: DataTypes.DECIMAL
-            }
+module.exports = function (mongoose) {
+    var model = null;
+    var collection = 'currency';
+    var Schema = mongoose.Schema;
+    var ObjectId = Schema.ObjectId;
+
+    var schema = new mongoose.Schema(
+        {
+            address: String,
+            value: Number
+        }
     );
+    model = mongoose.model(collection, schema);
+
+    return model;
 };
