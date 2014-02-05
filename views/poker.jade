@@ -1,7 +1,7 @@
 extends layout
 block content
   script(type='text/javascript').
-    var roomID = #{room.id};
+    var roomID = '#{room.id}';
     var roomName = "#{room.name}";
   script(src='/socket.io/socket.io.js')
   div

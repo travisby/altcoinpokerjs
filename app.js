@@ -27,11 +27,13 @@ app.use(app.router);
 app.use(express.static(path.join(__dirname, 'public')));
 
 var models = {};
-// models.currency = require('./models/currency.js')(mongoose).model;
-// models.payout = require('./models/payout.js')(mongoose).model;
-// models.player = require('./models/player.js')(mongoose).model;
-// models.room = require('./models/room.js')(mongoose).model;
-models.user = require('./models/user.js')(mongoose);
+models.Currency = require('./models/currency.js')(mongoose);
+models.Payout = require('./models/payout.js')(mongoose);
+models.Player = require('./models/player.js')(mongoose);
+models.Room = require('./models/room.js')(mongoose);
+models.User = require('./models/user.js')(mongoose);
+
+app.mongoose = models;
 
 // development only
 if ('development' == app.get('env')) {
