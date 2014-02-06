@@ -5,4 +5,7 @@ html
     link(rel='stylesheet', href='/stylesheets/style.css')
   body
     script(src='/vendor/javascripts/jquery.js')
+    if user
+      div
+        span Welcome back #{user.username}!
     block content
