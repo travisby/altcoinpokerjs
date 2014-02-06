@@ -7,7 +7,9 @@ module.exports.controller = function(app, passport) {
         function (req, res) {
             res.render(
                 'register',
-                {}
+                {
+                    user: req.user
+                }
             );
         }
     );

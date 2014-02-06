@@ -15,7 +15,8 @@ module.exports.controller = function(app) {
                                 {
                                     title: 'Hello, World!',
                                     rooms: rooms,
-                                    coins: coins
+                                    coins: coins,
+                                    user: req.user
                                 }
                             );
                         }

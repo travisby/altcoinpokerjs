@@ -14,7 +14,8 @@ module.exports.controller = function(app) {
                     res.render(
                         'poker',
                         {
-                            room: room
+                            room: room,
+                            user: req.user
                         }
                     );
                 }
