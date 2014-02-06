@@ -171,7 +171,7 @@ var game = function(socketio, db) {
                             var table = null;
 
                             // instantiate our user now
-                            player = new Player(userSocket, parseInt(room.buyin));
+                            player = new Player(userSocket, userSocket.handshake.user, parseInt(room.buyin));
                             userSocket.join(room);
 
                             // if we haven't instantiated anything yet...
@@ -593,16 +593,24 @@ var PokerDeck = function() {
  * @param {SocketIO} socket - socket for the specific user
  * @param {number} coin - how much money they are playing with
  */
-var Player = function(socket, coin) {
+var Player = function(socket, playerModel, coin) {
     this.socket = null;
     this.coin = 0;
     this.hand = null;
     this.isReady = false;
-    this.username = Player.getRandomUserName();
+    this.playerModel = null;
 
     this.socket = socket;
+    this.playerModel = playerModel;
     this.coin = coin;
 };
+
+/**
+ * The mongoose model for this particular player
+ *
+ * @type {db.Player}
+ */
+Player.prototype.playerModel = null;
 
 // TODO actually sit here and think about this instead of coming up with a 5s hack
 Player.usedUsernames = [];
