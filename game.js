@@ -19,6 +19,13 @@ var PokerEvaluator = require('poker-evaluator');
 var connection = 'connection';
 
 /**
+ * Event for ANOTHER user joining our game
+ * @event joiningPlayer
+ * @type {String} - the player name
+ */
+var joinedPlayer = 'joinedPlayer';
+
+/**
  * Event for users joining a room
  *
  * @event join
@@ -127,6 +134,12 @@ var game = function(socketio, db) {
          */
         function (userSocket) {
             console.log("Listened to a connection event");
+            /**
+             * The current table
+             *
+             * @type {Table}
+             */
+            var table = null;
 
             /**
              * The currently connected user as a player
@@ -163,16 +176,11 @@ var game = function(socketio, db) {
                             if (err) {
                                 throw err;
                             }
-                            /**
-                             * The current table
-                             *
-                             * @type {Table}
-                             */
-                            var table = null;
 
                             // instantiate our user now
                             player = new Player(userSocket, userSocket.handshake.user, parseInt(room.buyin));
                             userSocket.join(room);
+                            userSocket.broadcast.to(room).emit(joinedPlayer, userSocket.handshake.user.username);
 
                             // if we haven't instantiated anything yet...
                             if (!(room.id in rooms)) {
