@@ -226,7 +226,7 @@ var game = function(socketio, db) {
                                             }
                                         );
                                         // tell the entire room cards have been dealt
-                                        userSocket.broadcast.to(room.id).emit('deal');
+                                        userSocket.broadcast.to(room).emit('deal');
                                         userSocket.emit('deal');
                                     }
                                 }
@@ -254,7 +254,7 @@ var game = function(socketio, db) {
                                     if (table.canBet(player)) {
                                         console.log("doing bet");
                                         table.bet(player, data.amount);
-                                        userSocket.broadcast.to(room.id).emit('bet');
+                                        userSocket.broadcast.to(room).emit('bet');
                                         userSocket.emit('bet');
                                         isContinued = table.continue();
 
@@ -262,7 +262,7 @@ var game = function(socketio, db) {
                                             // Signal the new cards
                                              newCommunityCardsObject = table.cards.toJSON();
                                             // tell the entire room cards have been dealt
-                                            userSocket.broadcast.to(room.id).emit(newCommunityCards, newCommunityCardsObject);
+                                            userSocket.broadcast.to(room).emit(newCommunityCards, newCommunityCardsObject);
                                             userSocket.emit(newCommunityCards, newCommunityCardsObject);
                                         } else if (Table.stages.WINNER) {
                                             // TODO deal with winners here
