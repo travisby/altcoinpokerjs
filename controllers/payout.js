@@ -75,4 +75,54 @@ module.exports.controller = function(app) {
             res.redirect('/');
         }
     );
+
+    app.delete(
+        '/payout/:id',
+        ensureLoggedIn('/login'),
+        function (req, res) {
+            db.Payout.findById(req.params.id).populate('currency').populate('user').exec(
+                function (err, payout) {
+                    var currency = payout.currency;
+                    var user = req.user;
+                    if (err) {
+                        throw err;
+                    }
+                    if (payout.user.id !== req.user.id) {
+                        console.log("Your username " + req.user.name);
+                        console.log("Payout owner's username " + payout.user.username);
+                        throw "You can't delete someone else's wallet!";
+                    }
+
+                    if (payout.value > 0) {
+                        throw "You can't delete a non-empty wallet!";
+                    }
+                    // remove from currency
+                    currency.wallets.slice(currency.wallets.indexOf(payout.id), 1);
+                    currency.save(
+                        function (err, currency, numAffected) {
+                            if (err) {
+                                throw err;
+                            }
+                            // remove from user
+                            user.payouts.slice(user.payouts.indexOf(payout.id), 1);
+                            user.save(
+                                function (err, user, numAffected) {
+                                // finally remove the payout
+                                payout.remove(
+                                    function (err, payout) {
+                                        if (err) {
+                                            throw err;
+                                        }
+                                        res.send(200);
+                                    }
+                                );
+                                }
+                            );
+                        }
+                    );
+
+                }
+            );
+        }
+    );
 };
