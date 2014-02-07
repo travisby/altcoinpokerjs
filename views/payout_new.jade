@@ -1,0 +1,11 @@
+extends layout
+
+block content
+  form(name="newPokerGame", action="/payout/new", method="post")
+    label(for="address") address:
+    input(type="text", name="address")
+    label(for="coin") Coin:
+    select(name="currencyID")
+        each currency in currencies
+            option(value="#{currency.id}") #{currency.name}
+    input(type="submit", name="Create new Room")

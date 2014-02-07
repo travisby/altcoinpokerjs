@@ -7,6 +7,8 @@ block content
     div
       each payout in payouts
         p You have #{payout.value} #{payout.currency.symbol}!
+      p Add a new wallet 
+        a(href='/payout/new') here!
   ul
   each room in rooms
     li
