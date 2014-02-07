@@ -8,4 +8,13 @@ html
     if user
       div
         span Welcome back #{user.username}!
+    else
+      //- for the love of God please read up on Jade to make this prettier
+      div
+        p
+          a(href='/register') Please register
+        p or
+        p
+          a(href='/login') login
+
     block content
