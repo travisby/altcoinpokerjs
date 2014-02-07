@@ -12,6 +12,7 @@ module.exports = function (mongoose) {
     schema.plugin(
         passportLocalMongoose,
         {
+            'populatefields': ['payouts']
         }
     );
 
