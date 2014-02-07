@@ -4,6 +4,27 @@ module.exports.controller = function(app) {
     var db = app.mongoose;
     var game = require('../game.js');
     // routes
+
+    // list rooms
+    app.get(
+        '/room',
+        function (req, res) {
+            db.Room.find({}).exec(
+                function (err, rooms) {
+                    if (err) {
+                        throw err;
+                    }
+                    res.render(
+                        'room_list',
+                        {
+                            rooms: rooms,
+                            user: req.user
+                        }
+                    );
+                }
+            );
+        }
+    );
     app.get(
         '/room/:id',
         ensureLoggedIn('/login'),

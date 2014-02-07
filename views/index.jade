@@ -9,11 +9,6 @@ block content
         p You have #{payout.value} #{payout.currency.symbol}!
       p Add a new wallet 
         a(href='/payout/new') here!
-  ul
-  each room in rooms
-    li
-      a(href="/room/#{room.id}") #{room.name}
-
   br
   br
   br
@@ -26,7 +21,7 @@ block content
       input(type="text", name="name")
       label(for="coin") Coin:
       select(name="currencyID")
-          each coin in coins
+          //- each coin in coins
               option(value="#{coin.id}") #{coin.name}
       label(for="buyin") Buyin:
       input(type="text", name="buyin")
