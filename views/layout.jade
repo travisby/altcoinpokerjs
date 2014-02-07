@@ -5,20 +5,33 @@ html
     link(rel='stylesheet', href='/stylesheets/style.css')
     link(rel='stylesheet', href='//netdna.bootstrapcdn.com/bootstrap/3.1.0/css/bootstrap.min.css')
     link(rel='stylesheet', href='//netdna.bootstrapcdn.com/bootstrap/3.1.0/css/bootstrap-theme.min.css')
-    script(src='//netdna.bootstrapcdn.com/bootstrap/3.1.0/js/bootstrap.min.js')
-
   body
+    nav(class='navbar navbar-default' role='navigation')
+      div(class='container-fluid')
+        div(class='navbar-header')
+          button(type='button' class='navbar-toggle' data-toggle='collapse' data-target='#nav')
+            span(class='sr-only') Toggle navigation
+            span(class='icon-bar')
+            span(class='icon-bar')
+            span(class='icon-bar')
+          a(class='navbar-brand' href='#') Cryptopoker
+        div(class='collapse navbar-collapse' id='nav')
+          ul(class='nav navbar-nav')
+            if user
+              li
+                a(href='/user/settings') User Settings
+            else
+              li
+                a(href='/login') Login
+              li
+                a(href='/register') Register
+            li
+              a(href='/room') View Rooms
+            li
+              a(href='/room/new') New Room
+            li
+              a(href='/about') About Us
+    //- JQuery might be required for content below
     script(src='/vendor/javascripts/jquery.js')
-    if user
-      div
-        span Welcome back #{user.username}!
-    else
-      //- for the love of God please read up on Jade to make this prettier
-      div
-        p
-          a(href='/register') Please register
-        p or
-        p
-          a(href='/login') login
-
+    script(src='//netdna.bootstrapcdn.com/bootstrap/3.1.0/js/bootstrap.min.js')
     block content
