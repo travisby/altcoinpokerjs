@@ -7,7 +7,8 @@ module.exports.controller = function(app) {
             res.render(
                 'index',
                 {
-                    title: 'Welcome to CryptoPoker!'
+                    title: 'Welcome to CryptoPoker!',
+                    user: req.user
                 }
             );
         }
