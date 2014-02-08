@@ -3,12 +3,6 @@ extends layout
 block content
   h1= title
   p Welcome to #{title}
-  if user
-    div
-      each payout in payouts
-        p You have #{payout.value} #{payout.currency.symbol}!
-      p Add a new wallet 
-        a(href='/payout/new') here!
   br
   br
   br

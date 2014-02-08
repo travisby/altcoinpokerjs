@@ -1,5 +1,6 @@
 // https://github.com/saintedlama/passport-local-mongoose/blob/master/examples/login/routes.js
 var ensureLoggedIn = require('connect-ensure-login').ensureLoggedIn;
+
 module.exports.controller = function(app, passport) {
     var db = app.mongoose;
     // routes
@@ -70,10 +71,9 @@ module.exports.controller = function(app, passport) {
 
     app.get(
         '/user/settings',
-        ensureLoggedIn,
+        ensureLoggedIn('/login'),
         function (req, res) {
             db.Payout.where('user', req.user.id).populate('currency').exec(
-                null,
                 function (err, payouts) {
                     if (err) {
                         throw err;
