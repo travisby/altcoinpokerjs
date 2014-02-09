@@ -15,6 +15,13 @@
 var connection = 'connection';
 
 /**
+ * Event for ANOTHER user joining our game
+ * @event joiningPlayer
+ * @type {String} - the player name
+ */
+var joinedPlayer = 'joinedPlayer';
+
+/**
  * Event for users joining a room
  *
  * @event join
@@ -70,10 +77,20 @@ var ready = 'ready';
 var disconnect = 'disconnect';
 
 var socket = io.connect('http://localhost:8000');
+
 socket.on('connect', function (data) {
     console.log("Listened to a connect event");
     socket.emit('join', {roomID: roomID});
 });
+
+socket.on(
+    joinedPlayer,
+    function (username) {
+        console.log("listened to a playerJoined event");
+        console.log(username);
+        // TODO draw player
+    }
+);
 
 /**
  * Listens for newPlayerCards; event where we are dealt new hole cards

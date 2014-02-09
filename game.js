@@ -19,6 +19,13 @@ var PokerEvaluator = require('poker-evaluator');
 var connection = 'connection';
 
 /**
+ * Event for ANOTHER user joining our game
+ * @event joiningPlayer
+ * @type {String} - the player name
+ */
+var joinedPlayer = 'joinedPlayer';
+
+/**
  * Event for users joining a room
  *
  * @event join
@@ -127,6 +134,12 @@ var game = function(socketio, db) {
          */
         function (userSocket) {
             console.log("Listened to a connection event");
+            /**
+             * The current table
+             *
+             * @type {Table}
+             */
+            var table = null;
 
             /**
              * The currently connected user as a player
@@ -163,16 +176,11 @@ var game = function(socketio, db) {
                             if (err) {
                                 throw err;
                             }
-                            /**
-                             * The current table
-                             *
-                             * @type {Table}
-                             */
-                            var table = null;
 
                             // instantiate our user now
                             player = new Player(userSocket, userSocket.handshake.user, parseInt(room.buyin));
                             userSocket.join(room);
+                            userSocket.broadcast.to(room).emit(joinedPlayer, userSocket.handshake.user.username);
 
                             // if we haven't instantiated anything yet...
                             if (!(room.id in rooms)) {
@@ -226,7 +234,7 @@ var game = function(socketio, db) {
                                             }
                                         );
                                         // tell the entire room cards have been dealt
-                                        userSocket.broadcast.to(room.id).emit('deal');
+                                        userSocket.broadcast.to(room).emit('deal');
                                         userSocket.emit('deal');
                                     }
                                 }
@@ -254,7 +262,7 @@ var game = function(socketio, db) {
                                     if (table.canBet(player)) {
                                         console.log("doing bet");
                                         table.bet(player, data.amount);
-                                        userSocket.broadcast.to(room.id).emit('bet');
+                                        userSocket.broadcast.to(room).emit('bet');
                                         userSocket.emit('bet');
                                         isContinued = table.continue();
 
@@ -262,7 +270,7 @@ var game = function(socketio, db) {
                                             // Signal the new cards
                                              newCommunityCardsObject = table.cards.toJSON();
                                             // tell the entire room cards have been dealt
-                                            userSocket.broadcast.to(room.id).emit(newCommunityCards, newCommunityCardsObject);
+                                            userSocket.broadcast.to(room).emit(newCommunityCards, newCommunityCardsObject);
                                             userSocket.emit(newCommunityCards, newCommunityCardsObject);
                                         } else if (Table.stages.WINNER) {
                                             // TODO deal with winners here
