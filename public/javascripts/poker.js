@@ -209,3 +209,30 @@ var stringToCardCharacter = function (cardString) {
 var toSpan = function (string, klass) {
     return "<span class='" + klass + "'>" + string + '</span>';
 };
+
+$(document).ready(
+    function () {
+        // consts
+        var BLACK = 0x000000;
+
+        // get the canvas obj
+        var $canvas = $('canvas');
+        // create the root of the scenegraph
+        var stage = new PIXI.Stage(BLACK);
+
+        // decide between canvas and webgl for us
+        var renderer = PIXI.autoDetectRenderer(
+            1680,
+            1050,
+            $canvas[0]
+        );
+
+        var pokerTable = PIXI.Sprite.fromImage('/vendor/imgs/poker_table.png');
+        stage.addChild(pokerTable);
+        var update = function () {
+            renderer.render(stage);
+            requestAnimFrame(update);
+        };
+        requestAnimFrame(update);
+    }
+);
