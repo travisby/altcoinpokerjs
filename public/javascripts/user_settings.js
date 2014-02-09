@@ -1,9 +1,4 @@
-$('#delete_wallet').submit(
-    function (e) {
-        e.preventDefault();
-        deleteWallet($('#delete_wallet').find('input[name="walletID"').val());
-    }
-);
+var $deletePayoutButtons = $('.delete-payout-button');
 
 function deleteWallet(walletID) {
     $.ajax(
@@ -13,3 +8,12 @@ function deleteWallet(walletID) {
         }
     );
 }
+
+$deletePayoutButtons.click(
+    function (e) {
+        var $button = $(this);
+        var walletID = $button.parent().data('id');
+
+        deleteWallet(walletID);
+    }
+);

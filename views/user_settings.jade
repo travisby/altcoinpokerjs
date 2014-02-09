@@ -3,6 +3,9 @@ extends layout
 block content
   div
     each payout in payouts
-      p You have #{payout.value} #{payout.currency.symbol}!
+        p(data-id='#{payout.id}')
+          You have #{payout.value} #{payout.currency.symbol} in #{payout.address} 
+          button(type='button' class='delete-payout-button') x
     p Add a new wallet 
       a(href='/payout/new') here!
+  script(src='/javascripts/user_settings.js')
