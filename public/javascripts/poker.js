@@ -172,19 +172,27 @@ var stringToCardCharacter = function (cardString) {
     var rankCharacter = cardString.charAt(0);
     var suitCharacter = cardString.charAt(1);
 
+    // must be trying to get the back of a card!
+    if (cardString === '') {
+        return '&#' + decimalValue;
+    }
+
     switch (suitCharacter) {
         case 'c':
             decimalValue += 48;
-        break;
+            break;
         case 'd':
             decimalValue += 32;
-        break;
+            break;
         case 'h':
             decimalValue += 16;
-        break;
+            break;
         case 's':
             decimalValue += 0;
-        break;
+            break;
+        default:
+            decimalValue += 0;
+            break;
     }
 
     if (rankCharacter === 'A') {
