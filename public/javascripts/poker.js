@@ -254,37 +254,76 @@ $(document).ready(
         deck.scale = new PIXI.Point(3,3);
         deck.position.x = 700;
         deck.position.y = 450;
-        var ready = new PIXI.Text('Ready');
-        var checkOrFold = new PIXI.Text('Check/Fold');
-        var betOrRaise = new PIXI.Text('Bet/Raise');
-        ready.position.y = 20;
-        ready.position.x = 20;
+        readyButton.position.y = 20;
+        readyButton.position.x = 20;
         checkOrFold.position.y = 20;
         checkOrFold.position.x = 220;
         betOrRaise.position.y = 20;
         betOrRaise.position.x = 420;
-        ready.setInteractive(true);
+        readyButton.setInteractive(true);
         checkOrFold.setInteractive(true);
         betOrRaise.setInteractive(true);
 
-        ready.mousedown = function (mouseData) {
-            console.log('readied up!');
+        /**
+         * Ready up
+         */
+        readyButton.mousedown = function () {
+            console.log("Firing ready event");
+            socket.emit(ready);
         };
 
+        /**
+         * Let the server know we are placing a bet
+         *
+         * @fires bet
+         */
+        betOrRaise.mousedown = function () {
+            console.log("Firing bet event");
+            socket.emit(
+                bet,
+                {
+                    amount: parseInt(prompt("How much do you want to bet?")),
+                    // not used on this end... TODO refactor and use a separate object
+                    nextPlayer: null
+                }
+            );
+        };
+
+        /**
+         * Tell the server we are betting 0
+         *
+         * @fires bet
+         */
         checkOrFold.mousedown = function (mouseData) {
-            console.log('check or fold');
+            console.log("Firing bet event");
+            socket.emit(
+                bet,
+                {
+                    amount: 0,
+                    // not used on this end... TODO refactor and use a separate object
+                    nextPlayer: null
+                }
+            );
         };
 
-        betOrRaise.mousedown = function (mouseData) {
-            console.log('bet or raise');
-            console.log(parseInt(prompt("How much do you want to bet?")));
-        };
-
-        stage.addChild(pokerTable);
-        stage.addChild(ready);
-        stage.addChild(checkOrFold);
-        stage.addChild(betOrRaise);
-        stage.addChild(deck);
+        /**
+         * Listens for deal, letting us know cards are being dealt
+         *
+         * We should draw to the screen
+         *
+         * @listens deal
+         */
+        socket.on(
+            deal,
+            function (gameState) {
+                console.log("Listened to a deal event");
+                for (var i = 0; i < gameState.cards; i++) {
+                    var card = new Card(gameState.cards[i]); 
+                    stage.addChild(card);
+                    card.animateTo(player[i % players.length].position);
+                }
+            }
+        );
 
         var update = function () {
             renderer.render(stage);
