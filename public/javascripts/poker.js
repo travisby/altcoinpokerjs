@@ -60,8 +60,8 @@ var deck = new PIXI.Text($('<div />').html(stringToCardCharacter('')).text());
 var readyButton = new PIXI.Text('Ready');
 var checkOrFold = new PIXI.Text('Check/Fold');
 var betOrRaise = new PIXI.Text('Bet/Raise');
-var players = [];
 var cards = [];
+var animations = [];
 
 // events
 /**
@@ -133,57 +133,10 @@ var ready = 'ready';
  */
 var disconnect = 'disconnect';
 
-var socket = io.connect('http://localhost:8000');
-
-socket.on('connect', function (data) {
-    console.log("Listened to a connect event");
-    socket.emit('join', {roomID: roomID});
-});
-
-socket.on(
-    joinedPlayer,
-    function (username) {
-        console.log("listened to a playerJoined event");
-        console.log(username);
-        // TODO draw player
-    }
-);
-
-/**
- * Listens for newPlayerCards; event where we are dealt new hole cards
- *
- * @listens newPlayerCards
- */
-socket.on(
-    newPlayerCards,
-    function (data) {
-        console.log("Listened to a newPlayerCards event");
-        console.log(JSON.stringify(data.cards));
-        // TODO display them on the game screen
-        // for now we just print them into the console
-        $('#holeCardsList')[0].innerHTML = (data.cards.map(function (cardString) { return toSpan(stringToCardCharacter(cardString));}));
-    }
-);
-
-/**
- * Listens for newCommunityCards; event where we are dealt new community cards
- *
- * @listens newCommunityCards
- */
-socket.on(
-    newCommunityCards,
-    function (data) {
-        console.log("Listened to a newCommunityCardsCards event");
-        console.log(JSON.stringify(data.cards));
-        // TODO display them on the game screen
-        // for now we just print them into the console
-        $('#communityCardsList')[0].innerHTML = (data.cards.map(function (cardString) { return toSpan(stringToCardCharacter(cardString));}));
-    }
-);
-
 /**
  * Card object
  *
+ * @constructor
  * @param {String} str - the string making a particular card up
  */
 var Card = function (str) {
@@ -193,6 +146,7 @@ var Card = function (str) {
 /**
  * Contains the PIXI sprite for us to use
  *
+ * @propertyof! Card
  * @type PIXI.Sprite
  */
 Card.prototype.sprite = null;
@@ -200,28 +154,98 @@ Card.prototype.sprite = null;
 /**
  * Animate this card to position point over time frames
  *
+ * @propertyof Card
+ * @method
  * @param {PIXI.Point} point - the point we are moving to
  * @param {Number} frames - how many frames should it take to get there?
+ * @param {Number} startIn - number of frames to stagger
  */
-Card.prototype.animateTo = function (point, frames) {
+Card.prototype.animateTo = function (point, frames, startIn) {
     var amount = new PIXI.Point();
+    var thisCard = this;
     amount.x = (point.x - this.sprite.position.x) / frames;
     amount.y = (point.y - this.sprite.position.y) / frames;
 
-    animations.push(
-        function (amount, times) {
-            if (times < 0) {
-                return;
-            }
-            this.position.x -= point.x;
-            this.position.y -= point.y;
-            animations.push(this, [amount, times - 1]);
-        },
-        [amount, frames]
-    );
+    var animateFunction = function (amount, times, startIn) {
+        // defer
+        if (startIn > 0) {
+            animations.push([animateFunction, thisCard, [amount, times, startIn - 1]]);
+            return;
+        }
+
+        // we're done
+        if (times < 0) {
+            return;
+        }
+        thisCard.sprite.position.x += amount.x;
+        thisCard.sprite.position.y += amount.y;
+        animations.push([animateFunction, thisCard, [amount, times - 1, 0]]);
+    };
+
+    animateFunction(amount, frames, startIn);
 };
 
+/**
+ * Player
+ *
+ * @constructor
+ * @param {UserObj} userObj
+ */
+var Player = function (userObj) {
+    Player.players.push(this);
 
+    // Decide their place on the webgl board
+    switch (Player.players.length) {
+        case 1:
+            this.position = new PIXI.Point(100, 200);
+            break;
+        case 2:
+            this.position = new PIXI.Point(300, 200);
+            break;
+        case 3:
+            this.position = new PIXI.Point(550, 200);
+            break;
+        case 4:
+            this.position = new PIXI.Point(820, 200);
+            break;
+        case 5:
+            this.position = new PIXI.Point(900, 450);
+            break;
+        case 6:
+            this.position = new PIXI.Point(820, 700);
+            break;
+        case 7:
+            this.position = new PIXI.Point(550, 700);
+            break;
+        case 8:
+            this.position = new PIXI.Point(300, 700);
+            break;
+        case 9:
+            this.position = new PIXI.Point(100, 700);
+            break;
+        case 10:
+            this.position = new PIXI.Point(50, 450);
+            break;
+        default:
+            throw "Something is wrong";
+    }
+};
+
+/**
+ * Where the player is sitting
+ * 
+ * @type {PIXI.Point}
+ */
+Player.prototype.position = null;
+
+/**
+ * Players list
+ * 
+ * @memberof Player
+ * @static
+ * @type {Player[]}
+ */
+Player.players = [];
 
 var toSpan = function (string, klass) {
     return "<span class='" + klass + "'>" + string + '</span>';
@@ -229,6 +253,52 @@ var toSpan = function (string, klass) {
 
 $(document).ready(
     function () {
+        var socket = io.connect('http://localhost:8000');
+
+        socket.on('connect', function (data) {
+            console.log("Listened to a connect event");
+            socket.emit('join', {roomID: roomID});
+        });
+
+        socket.on(
+            joinedPlayer,
+            function (username) {
+                console.log("listened to a playerJoined event");
+                console.log(username);
+                // TODO draw player
+            }
+        );
+
+        /**
+         * Listens for newPlayerCards; event where we are dealt new hole cards
+         *
+         * @listens newPlayerCards
+         */
+        socket.on(
+            newPlayerCards,
+            function (data) {
+                console.log("Listened to a newPlayerCards event");
+                // TODO display them on the game screen
+                // for now we just print them into the console
+                $('#holeCardsList')[0].innerHTML = (data.cards.map(function (cardString) { return toSpan(stringToCardCharacter(cardString));}));
+            }
+        );
+
+        /**
+         * Listens for newCommunityCards; event where we are dealt new community cards
+         *
+         * @listens newCommunityCards
+         */
+        socket.on(
+            newCommunityCards,
+            function (data) {
+                console.log("Listened to a newCommunityCardsCards event");
+                // TODO display them on the game screen
+                // for now we just print them into the console
+                $('#communityCardsList')[0].innerHTML = (data.cards.map(function (cardString) { return toSpan(stringToCardCharacter(cardString));}));
+            }
+        );
+
         // consts
         var BLACK = 0x000000;
 
@@ -237,7 +307,6 @@ $(document).ready(
         // create the root of the interactive scenegraph
         var stage = new PIXI.Stage(BLACK, true);
         stage.addChild(pokerTable);
-        console.log(readyButton);
         stage.addChild(readyButton);
         stage.addChild(checkOrFold);
         stage.addChild(betOrRaise);
@@ -315,17 +384,54 @@ $(document).ready(
          */
         socket.on(
             deal,
-            function (gameState) {
-                console.log("Listened to a deal event");
-                for (var i = 0; i < gameState.cards; i++) {
-                    var card = new Card(gameState.cards[i]); 
-                    stage.addChild(card);
-                    card.animateTo(player[i % players.length].position);
+            function () {
+                new Player();
+                new Player();
+                new Player();
+                new Player();
+                new Player();
+                new Player();
+                new Player();
+                new Player();
+                new Player();
+                new Player();
+                for (var i = 0; i < Player.players.length; i++) {
+                    // var card = new Card(gameState.cards[i]); 
+                    var card = new Card(''); 
+                    stage.addChild(card.sprite);
+                    card.sprite.scale = new PIXI.Point(2,2);
+                    card.sprite.position = deck.position.clone();
+                    cards.push(card);
+                    card.animateTo(Player.players[i].position, 800, i * 200);
+                }
+
+                for (var i = 0; i < Player.players.length; i++) {
+                    // var card = new Card(gameState.cards[i]); 
+                    var card = new Card(''); 
+                    var newPosition = Player.players[i].position.clone();
+                    newPosition.x += 20;
+                    newPosition.y += 20;
+                    stage.addChild(card.sprite);
+                    card.sprite.scale = new PIXI.Point(2,2);
+                    card.sprite.position = deck.position.clone();
+                    cards.push(card);
+                    card.animateTo(newPosition, 800, (i + Player.players.length) * 200);
                 }
             }
         );
 
         var update = function () {
+
+            // Run the function within the animations array, and then remove it
+            var animlength = animations.length;
+            for (var i = 0; i < animlength; i++) {
+                var animation = animations.shift();
+                var func = animation[0];
+                var obj = animation[1];
+                var args = animation[2];
+                func.apply(obj, args);
+            }
+
             renderer.render(stage);
             requestAnimFrame(update);
         };
