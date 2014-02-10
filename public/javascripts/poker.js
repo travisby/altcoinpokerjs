@@ -225,8 +225,8 @@ $(document).ready(
 
         // get the canvas obj
         var $canvas = $('canvas');
-        // create the root of the scenegraph
-        var stage = new PIXI.Stage(BLACK);
+        // create the root of the interactive scenegraph
+        var stage = new PIXI.Stage(BLACK, true);
 
         // decide between canvas and webgl for us
         var renderer = PIXI.autoDetectRenderer(
@@ -235,8 +235,43 @@ $(document).ready(
             $canvas[0]
         );
 
-        var pokerTable = PIXI.Sprite.fromImage('/vendor/imgs/poker_table.png');
+        var pokerTable = PIXI.Sprite.fromImage('/vendor/imgs/poker_table.png'); 
+        var deck = new PIXI.Text($('<div />').html(stringToCardCharacter('')).text());
+        deck.scale = new PIXI.Point(3,3);
+        deck.position.x = 700;
+        deck.position.y = 450;
+        var ready = new PIXI.Text('Ready');
+        var checkOrFold = new PIXI.Text('Check/Fold');
+        var betOrRaise = new PIXI.Text('Bet/Raise');
+        ready.position.y = 20;
+        ready.position.x = 20;
+        checkOrFold.position.y = 20;
+        checkOrFold.position.x = 220;
+        betOrRaise.position.y = 20;
+        betOrRaise.position.x = 420;
+        ready.setInteractive(true);
+        checkOrFold.setInteractive(true);
+        betOrRaise.setInteractive(true);
+
+        ready.mousedown = function (mouseData) {
+            console.log('readied up!');
+        };
+
+        checkOrFold.mousedown = function (mouseData) {
+            console.log('check or fold');
+        };
+
+        betOrRaise.mousedown = function (mouseData) {
+            console.log('bet or raise');
+            console.log(parseInt(prompt("How much do you want to bet?")));
+        };
+
         stage.addChild(pokerTable);
+        stage.addChild(ready);
+        stage.addChild(checkOrFold);
+        stage.addChild(betOrRaise);
+        stage.addChild(deck);
+
         var update = function () {
             renderer.render(stage);
             requestAnimFrame(update);
