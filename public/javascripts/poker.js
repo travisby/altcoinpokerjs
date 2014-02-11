@@ -416,7 +416,7 @@ var toSpan = function (string, klass) {
 
 $(document).ready(
     function () {
-        var socket = io.connect('http://localhost:8000');
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
 
         socket.on(connect, function (data) {
             console.log("Listened to a connect event");
