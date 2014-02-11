@@ -1,11 +1,3 @@
-/**
- * Betting Object Type Decleration
- *
- * @typedef {Object} betObj
- * @property {number} amount - number of coins to bet
- * @property {Player} nextPlayer - the player that bet
- */
-
 var stringToCardCharacter = function (cardString) {
     // this is the value of the back of a card
     var decimalValue = 127136;
@@ -60,10 +52,33 @@ var deck = new PIXI.Text($('<div />').html(stringToCardCharacter('')).text());
 var readyButton = new PIXI.Text('Ready');
 var checkOrFold = new PIXI.Text('Check/Fold');
 var betOrRaise = new PIXI.Text('Bet/Raise');
+
+// objects used elsewhere
 var cards = [];
 var animations = [];
 
+
+/**
+ * Player object to send down in an event
+ *
+ * @typedef {String} eventPlayer - username
+ *
+ */
+
+/*
+ *
+ * Betting Object Type Declaration
+ *
+ * @typedef {Object} eventBet
+ *
+ * @property {Number} amount - number of coins to bet
+ * @property {eventPlayer} player - the player that bet
+ */
+
+
+
 // events
+
 /**
  * Event for users connecting to the socketio socket
  *
@@ -73,65 +88,128 @@ var connection = 'connection';
 
 /**
  * Event for ANOTHER user joining our game
- * @event joiningPlayer
- * @type {String} - the player name
+ *
+ * @event playerSatDown
+ * @type {eventPlayer}
  */
-var joinedPlayer = 'joinedPlayer';
+var playerSatDown = 'playerSatDown';
+
 
 /**
- * Event for users joining a room
+ * Event to tell who needs to ante
  *
- * @event join
- * @type {number} -  the room ID to join
+ * @event playersNeedToAnte
+ *
+ * @type {Player[]}
  */
-var join = 'join';
+var playersNeedToAnte = 'playersNeedToAnte';
 
 /**
- * Event for sending hole cards to players
+ * Event to tell the room that a player has anted
  *
- * @event newPlayerCards
- * @type {object}
- * @property {string} cards - ',' delimited list of cards
+ * @event playerPaidAnte
+ *
+ * @type {Player}
  */
-var newPlayerCards = 'newPlayerCards';
+var playerPaidAnte = 'playerPaidAnte';
 
 /**
- * Event for sending community cards
+ * Event to tell the room that the dealer has dealt hole cards to every player
  *
- * @event newCommunityCards
- * @type {object}
- * @property {string} cards - ',' delimited list of cards
+ * @event dealerDealtHoleCards
+ * @type {String[]}
  */
-var newCommunityCards = 'newCommunityCards';
+var dealerDealtHoleCards = 'dealerDealtHoleCards';
 
 /**
- * Event to broadcast that the hand has been dealt
+ * Event to tell the room a player has bet
  *
- * @event deal
+ * @event playerBet
+ *
+ * @type {eventBet}
  */
-var deal = 'deal';
+var playerBet = 'playerBet';
 
 /**
- * Event to be sent to inform everyone of a bet
+ * Event to tell the room who has to bet next
  *
- * @event bet
- * @type {betObj}
+ * @event playerNeedsToBet
+ *
+ * @type {eventBet}
  */
-var bet = 'bet';
+var playerNeedsToBet = 'playerNeedsToBet';
 
 /**
- * Event to tell the server that a specific user is ready
+ * Event to tell the room the dealer dealt the community cards
  *
- * @event ready
+ * @event dealerDealtCommunityCards
+ *
+ * @type {String[]}
  */
-var ready = 'ready';
+var dealerDealtCommunityCards = 'dealerDealtCommunityCards';
 
 /**
- * Event when a user leaves the game, whether accidentally or purposely
+ * Event to tell the room which player won
  *
- * @event disconnect
+ * @event playerWon
+ *
+ * @type {eventPlayer}
  */
-var disconnect = 'disconnect';
+var playerWon = 'playerWon';
+
+/**
+ * Event to tell the board the game has been reset
+ *
+ * @event dealerResetGame
+ *
+ */
+var dealerResetGame = 'dealerResetGame';
+
+/**
+ * Event to broadcast that a player has quit
+ *
+ * @event playerLeft
+ *
+ * @type {eventPlayer}
+ */
+var playerLeft = 'playerLeft';
+
+
+/**
+ * Event to tell update a player about what's going on in the game when they joined
+ *
+ * @event youSatDown
+ *
+ * @type {eventPlayer[]}
+ */
+var youSatDown = 'youSatDown';
+
+/**
+ * Event to tell the server you're joining our fun game
+ *
+ * @event iSatDown
+ */
+var iSatDown = 'iSatDown';
+
+/**
+ * Event to tell the server a player has bet
+ *
+ * @event iBet
+ *
+ * @type {Number} - amount
+ */
+var iBet = 'iBet';
+
+/**
+ * Event to tell the player I left the game
+ *
+ * @event iLeft
+ */
+var iLeft = 'disconnect';
+
+
+
+
 
 /**
  * Card object
@@ -255,47 +333,141 @@ $(document).ready(
     function () {
         var socket = io.connect('http://localhost:8000');
 
-        socket.on('connect', function (data) {
+        socket.on(connect, function (data) {
             console.log("Listened to a connect event");
-            socket.emit('join', {roomID: roomID});
+            socket.emit(iSatDown, {roomID: roomID});
         });
 
         socket.on(
-            joinedPlayer,
+            playerSatDown,
             function (username) {
                 console.log("listened to a playerJoined event");
                 console.log(username);
-                // TODO draw player
+                new Player(username);
+            }
+        );
+
+        socket.on(
+            playersNeedToAnte,
+            function (usernames) {
+                Player.addArrowsTo(usernames);
+            }
+        );
+
+
+        /**
+         * Listens for dealerDeltHoleCards; event where we are dealt new hole cards
+         *
+         * @listens dealerDeltHoleCards
+         */
+        socket.on(
+            dealerDealtHoleCards,
+            function (cards) {
+                console.log("Listened to a dealerDeltHoleCards event");
+                // deal first card
+                for (var i = 0; i < Player.players.length; i++) {
+                    // var card = new Card(gameState.cards[i]); 
+                    var card = new Card(cards.shift()); 
+                    stage.addChild(card.sprite);
+                    card.sprite.scale = new PIXI.Point(2,2);
+                    card.sprite.position = deck.position.clone();
+                    cards.push(card);
+                    card.animateTo(Player.players[i].position, 800, i * 200);
+                }
+
+                // deal second card... slightly over in position
+                for (var i = 0; i < Player.players.length; i++) {
+                    // var card = new Card(gameState.cards[i]); 
+                    var card = new Card(cards.shift()); 
+                    var newPosition = Player.players[i].position.clone();
+                    newPosition.x += 20;
+                    newPosition.y += 20;
+                    stage.addChild(card.sprite);
+                    card.sprite.scale = new PIXI.Point(2,2);
+                    card.sprite.position = deck.position.clone();
+                    cards.push(card);
+                    card.animateTo(newPosition, 800, (i + Player.players.length) * 200);
+                }
             }
         );
 
         /**
-         * Listens for newPlayerCards; event where we are dealt new hole cards
+         * Listens for playerBet; event where players bet
          *
-         * @listens newPlayerCards
+         * @listens playerBet
          */
         socket.on(
-            newPlayerCards,
-            function (data) {
-                console.log("Listened to a newPlayerCards event");
-                // TODO display them on the game screen
-                // for now we just print them into the console
-                $('#holeCardsList')[0].innerHTML = (data.cards.map(function (cardString) { return toSpan(stringToCardCharacter(cardString));}));
+            playerBet,
+            function (playerBet) {
+                var player = playerBet.player;
+                var bet = playerbet.amount;
+                Player.playerBet(player, bet);
+                Player.removeArrow(player);
+
+                Player.subtract(player, bet);
+            }
+        );
+
+        /**
+         * @listens playerNeedsToBet
+         */
+        socket.on(
+            playerNeedsToBet,
+            function (playerBet) {
+                Player.addArrow(player);
             }
         );
 
         /**
          * Listens for newCommunityCards; event where we are dealt new community cards
          *
-         * @listens newCommunityCards
+         * @listens dealerDealtCommunityCards
          */
         socket.on(
-            newCommunityCards,
+            dealerDealtCommunityCards,
             function (data) {
-                console.log("Listened to a newCommunityCardsCards event");
-                // TODO display them on the game screen
-                // for now we just print them into the console
-                $('#communityCardsList')[0].innerHTML = (data.cards.map(function (cardString) { return toSpan(stringToCardCharacter(cardString));}));
+                console.log("Listened to a dealerDealtCommunityCards event");
+                cards.map(function (card) { table.addCommunityCard(card); });
+            }
+        );
+
+        /**
+         * @listens playerWon
+         */
+        socket.on(
+            playerWon,
+            function (player) {
+                table.handleWinner(player);
+            }
+        );
+
+        /**
+         * @listens dealerResetGame
+         */
+        socket.on(
+            dealerResetGame,
+            function () {
+                table.reset();
+            }
+        );
+
+        /**
+         * @listens playerLeft
+         */
+        socket.on(
+            playerLeft,
+            function (player) {
+                Player.removePlayer(player);
+            }
+        );
+
+        /**
+         * @listens youSatDown
+         */
+        socket.on(
+            youSatDown,
+            function (players) {
+                players.map(function (player) { new Player(player); });
             }
         );
 
@@ -338,7 +510,13 @@ $(document).ready(
          */
         readyButton.mousedown = function () {
             console.log("Firing ready event");
-            socket.emit(ready);
+            socket.emit(
+                iBet,
+                {
+                    player: mePlayer,
+                    amount: table.ante
+                }
+            );
         };
 
         /**
@@ -374,51 +552,6 @@ $(document).ready(
                 }
             );
         };
-
-        /**
-         * Listens for deal, letting us know cards are being dealt
-         *
-         * We should draw to the screen
-         *
-         * @listens deal
-         */
-        socket.on(
-            deal,
-            function () {
-                new Player();
-                new Player();
-                new Player();
-                new Player();
-                new Player();
-                new Player();
-                new Player();
-                new Player();
-                new Player();
-                new Player();
-                for (var i = 0; i < Player.players.length; i++) {
-                    // var card = new Card(gameState.cards[i]); 
-                    var card = new Card(''); 
-                    stage.addChild(card.sprite);
-                    card.sprite.scale = new PIXI.Point(2,2);
-                    card.sprite.position = deck.position.clone();
-                    cards.push(card);
-                    card.animateTo(Player.players[i].position, 800, i * 200);
-                }
-
-                for (var i = 0; i < Player.players.length; i++) {
-                    // var card = new Card(gameState.cards[i]); 
-                    var card = new Card(''); 
-                    var newPosition = Player.players[i].position.clone();
-                    newPosition.x += 20;
-                    newPosition.y += 20;
-                    stage.addChild(card.sprite);
-                    card.sprite.scale = new PIXI.Point(2,2);
-                    card.sprite.position = deck.position.clone();
-                    cards.push(card);
-                    card.animateTo(newPosition, 800, (i + Player.players.length) * 200);
-                }
-            }
-        );
 
         var update = function () {
 
