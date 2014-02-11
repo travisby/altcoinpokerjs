@@ -1,0 +1,7 @@
+extends layout
+
+block content
+  ul
+    each room in rooms
+      li
+        a(href="/room/#{room.id}" target='_blank') #{room.name}

@@ -3,17 +3,6 @@ extends layout
 block content
   h1= title
   p Welcome to #{title}
-  if user
-    div
-      each payout in payouts
-        p You have #{payout.value} #{payout.currency.symbol}!
-      p Add a new wallet 
-        a(href='/payout/new') here!
-  ul
-  each room in rooms
-    li
-      a(href="/poker/#{room.id}") #{room.name}
-
   br
   br
   br
@@ -21,12 +10,12 @@ block content
   div.admin
     p Pay no attention to the admin console on the index page
     p Create new Poker Room
-    form(name="newPokerGame", action="/poker/new", method="post")
+    form(name="newPokerGame", action="/room/new", method="post")
       label(for="name") Name:
       input(type="text", name="name")
       label(for="coin") Coin:
       select(name="currencyID")
-          each coin in coins
+          //- each coin in coins
               option(value="#{coin.id}") #{coin.name}
       label(for="buyin") Buyin:
       input(type="text", name="buyin")

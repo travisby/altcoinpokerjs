@@ -3,14 +3,26 @@ var utils = require('./utils.js');
 var PokerEvaluator = require('poker-evaluator');
 
 /**
- * Betting Object Type Decleration
+ * Player object to send down in an event
  *
- * @typedef {Object} betObj
- * @property {number} amount - number of coins to bet
- * @property {Player} nextPlayer - the player that bet
+ * @typedef {String} eventPlayer - username
+ *
  */
 
+/*
+ *
+ * Betting Object Type Declaration
+ *
+ * @typedef {Object} eventBet
+ *
+ * @property {Number} amount - number of coins to bet
+ * @property {eventPlayer} player - the player that bet
+ */
+
+
+
 // events
+
 /**
  * Event for users connecting to the socketio socket
  *
@@ -20,64 +32,126 @@ var connection = 'connection';
 
 /**
  * Event for ANOTHER user joining our game
- * @event joiningPlayer
- * @type {String} - the player name
+ *
+ * @event playerSatDown
+ * @type {eventPlayer}
  */
-var joinedPlayer = 'joinedPlayer';
+var playerSatDown = 'playerSatDown';
+
 
 /**
- * Event for users joining a room
+ * Event to tell who needs to ante
  *
- * @event join
- * @type {number} -  the room ID to join
+ * @event playersNeedToAnte
+ *
+ * @type {Player[]}
  */
-var join = 'join';
+var playersNeedToAnte = 'playersNeedToAnte';
 
 /**
- * Event for sending hole cards to players
+ * Event to tell the room that a player has anted
  *
- * @event newPlayerCards
- * @type {object}
- * @property {string} cards - ',' delimited list of cards
+ * @event playerPaidAnte
+ *
+ * @type {Player}
  */
-var newPlayerCards = 'newPlayerCards';
+var playerPaidAnte = 'playerPaidAnte';
 
 /**
- * Event for sending hole cards to players
+ * Event to tell the room that the dealer has dealt hole cards to every player
  *
- * @event newPlayerCards
- * @type {object}
- * @property {string} cards - ',' delimited list of cards
+ * @event dealerDealtHoleCards
+ * @type {String[]}
  */
-var newCommunityCards = 'newCommunityCards';
+var dealerDealtHoleCards = 'dealerDealtHoleCards';
 
 /**
- * Event to broadcast that the hand has been dealt
+ * Event to tell the room a player has bet
  *
- * @event deal
+ * @event playerBet
+ *
+ * @type {eventBet}
  */
-var deal = 'deal';
+var playerBet = 'playerBet';
 
 /**
- * Event to be sent to inform everyone of a bet
+ * Event to tell the room who has to bet next
  *
- * @event bet
+ * @event playerNeedsToBet
+ *
+ * @type {eventBet}
  */
-var bet = 'bet';
+var playerNeedsToBet = 'playerNeedsToBet';
 
 /**
- * Event to tell the server that a specific user is ready
+ * Event to tell the room the dealer dealt the community cards
  *
- * @event ready
+ * @event dealerDealtCommunityCards
+ *
+ * @type {String[]}
  */
-var ready = 'ready';
+var dealerDealtCommunityCards = 'dealerDealtCommunityCards';
 
 /**
- * Event when a user leaves the game, whether accidentally or purposely
+ * Event to tell the room which player won
  *
- * @event disconnect
+ * @event playerWon
+ *
+ * @type {eventPlayer}
  */
-var disconnect = 'disconnect';
+var playerWon = 'playerWon';
+
+/**
+ * Event to tell the board the game has been reset
+ *
+ * @event dealerResetGame
+ *
+ */
+var dealerResetGame = 'dealerResetGame';
+
+/**
+ * Event to broadcast that a player has quit
+ *
+ * @event playerLeft
+ *
+ * @type {eventPlayer}
+ */
+var playerLeft = 'playerLeft';
+
+
+/**
+ * Event to tell update a player about what's going on in the game when they joined
+ *
+ * @event youSatDown
+ *
+ * @type {eventPlayer[]}
+ */
+var youSatDown = 'youSatDown';
+
+/**
+ * Event to tell the server you're joining our fun game
+ *
+ * @event iSatDown
+ */
+var iSatDown = 'iSatDown';
+
+/**
+ * Event to tell the server a player has bet
+ *
+ * @event iBet
+ *
+ * @type {Number} - amount
+ */
+var iBet = 'iBet';
+
+/**
+ * Event to tell the player I left the game
+ *
+ * @event iLeft
+ */
+var iLeft = 'disconnect';
+
+
 
 /**
  * Max number of players that can sit down at a table.  Others will be watchers
@@ -126,10 +200,6 @@ var game = function(socketio, db) {
         /**
          * Callback for when a user connects
          *
-         * @fires newPlayerCards
-         * @fires deal
-         * @fires bet
-         *
          * @param {SocketIO} userSocket -- connected user socket
          */
         function (userSocket) {
@@ -151,20 +221,17 @@ var game = function(socketio, db) {
             /**
              * Event for when a user joins a specific room
              *
-             * @listens join
+             * @listens iSatDown
              */
             userSocket.on(
-                join,
-
+                iSatDown,
                 /**
                  * Callback for a user joining a specific room
                  *
-                 * @fires deal
-                 * @fires bet
                  * @param {number} roomID the id of the room we are joining
                  */
                 function (roomID) {
-                    console.log("Listened to a join event");
+                    console.log("Listened to a iSatDown event");
                     // get the Room object first...
                     db.Room.findById(roomID.roomID).exec(
                         /**
@@ -179,8 +246,12 @@ var game = function(socketio, db) {
 
                             // instantiate our user now
                             player = new Player(userSocket, userSocket.handshake.user, parseInt(room.buyin));
-                            userSocket.join(room);
-                            userSocket.broadcast.to(room).emit(joinedPlayer, userSocket.handshake.user.username);
+                            userSocket.join(room.id);
+
+                            /**
+                             * @fires playerSatDown
+                             */
+                            userSocket.broadcast.to(room.id).emit(playerSatDown, player.playerModel.username);
 
                             // if we haven't instantiated anything yet...
                             if (!(room.id in rooms)) {
@@ -194,86 +265,134 @@ var game = function(socketio, db) {
                                 table.players.push(player);
                             }
 
+                            userSocket.emit(
+                                youSatDown,
+                                {
+                                    players: table.players.map(function (player) { return player.playerModel.username; }),
+                                    ante: table.ante
+                                }
+                            );
+
                             // Now that we have the room...
 
                             /**
                              * Event for when a player readys-up
                              *
-                             * @listens ready
+                             * @listens iBet
                              */
                             userSocket.on(
-                                ready,
+                                iBet,
 
                                 /**
-                                 * Function to be run when a player readys up
+                                 * Function to be run when a player bet
                                  *
-                                 * @fires newPlayerCards
+                                 * @param {Number} amount - amount bet
                                  */
-                                function () {
-                                    console.log("Listened to a ready event");
+                                function (amount) {
+                                    console.log("Listened to a bet event");
 
-                                    // only ready if the game is ready-able and the table needs more players
-                                    if (!table.isGameBeingPlayed()) {
-                                        player.isReady = true;
-                                    }
-                                    var x = table.continue();
+                                    // only bet ante if the player hasn't, is in the table, and the game isn't started
+                                    if (!table.isGameBeingPlayed() && !player.isReady && table.players.indexOf(player) !== -1) {
+                                        // this must be an ante!
+                                        table.bet(player, amount);
+                                        var x = table.continue();
+                                        if (x) {
+                                            table.players.forEach(
+                                                /**
+                                                 * For every player, let them know their cards
+                                                 */
+                                                    function (player) {
+                                                    /**
+                                                     * @fires dealerDealtHoleCards
+                                                     */
+                                                    player.socket.emit(
+                                                        dealerDealtHoleCards,
+                                                        table.cardsCensored(player)
+                                                    );
+                                                }
+                                            );
+                                        } else {
+                                            // TODO replace with an Array.prototype.filter we should create
+                                            var missingAntiedPlayers = [];
+                                            for (var i = 0; i < table.players.length; i++) {
+                                                if (!table.players[i].isReady) {
+                                                    missingAntiedPlayers.push(table.players[i].playerModel.username);
+                                                }
+                                            }
+                                            userSocket.broadcast.to(room.id).emit(playersNeedToAnte, missingAntiedPlayers);
+                                            userSocket.emit(playersNeedToAnte, missingAntiedPlayers);
+                                        }
+                                    } else {
+                                        // this is not an ante!
+                                        var isContinued = false;
+                                        var newCommunityCardsObject = null;
+                                        console.log("Listened to a bet event");
+                                        console.log(amount);
+                                        if (table.canBet(player)) {
+                                            console.log("doing bet");
+                                            table.bet(player, amount);
+                                            // let the game know this player has bet
+                                            userSocket.broadcast.to(room.id).emit(
+                                                playerBet,
+                                                {
+                                                    player: player.playerModel.username,
+                                                    amount: amount
+                                                }
+                                            );
+                                            userSocket.emit(
+                                                playerBet,
+                                                {
+                                                    player: player.playerModel.username,
+                                                    amount: amount
+                                                }
+                                            );
 
-                                    if (x) {
-                                        table.players.forEach(
-
-                                            /**
-                                             * For every player, let them know their cards
-                                             *
-                                             * @fires newPlayerCards
-                                             */
-                                            function (player) {
-                                                player.socket.emit(
-                                                    newPlayerCards,
-                                                    player.hand.toJSON()
+                                            // let the game know who is the next better... if there is one
+                                            var nextBet = table.playerBetManager.nextBetter();
+                                            if (nextBet) {
+                                                userSocket.broadcast.to(room.id).emit(
+                                                    playerNeedsToBet,
+                                                    {
+                                                        player: nextBet.player.playerModel.username,
+                                                        amount: nextBet.amount
+                                                    }
+                                                );
+                                                userSocket.emit(
+                                                    playerNeedsToBet,
+                                                    {
+                                                        player: nextBet.player.playerModel.username,
+                                                        amount: nextBet.amount
+                                                    }
                                                 );
                                             }
-                                        );
-                                        // tell the entire room cards have been dealt
-                                        userSocket.broadcast.to(room).emit('deal');
-                                        userSocket.emit('deal');
-                                    }
-                                }
-                            );
+                                    
+                                            isContinued = table.continue();
 
-                            /**
-                             * Event listener for players betting
-                             * @listens bet
-                             */
-                            userSocket.on(
-                                bet,
-
-                                /**
-                                 * Function to run when we get our bet
-                                 *
-                                 * @param {betObj} data
-                                 * @fires bet
-                                 * @fires newCommunityCards
-                                 */
-                                function (data) {
-                                    var isContinued = false;
-                                    var newCommunityCardsObject = null;
-                                    console.log("Listened to a bet event");
-                                    console.log(data);
-                                    if (table.canBet(player)) {
-                                        console.log("doing bet");
-                                        table.bet(player, data.amount);
-                                        userSocket.broadcast.to(room).emit('bet');
-                                        userSocket.emit('bet');
-                                        isContinued = table.continue();
-
-                                        if (isContinued && Table.stages.FLOP <= table.lastStage <= Table.stages.RIVER) {
-                                            // Signal the new cards
-                                             newCommunityCardsObject = table.cards.toJSON();
-                                            // tell the entire room cards have been dealt
-                                            userSocket.broadcast.to(room).emit(newCommunityCards, newCommunityCardsObject);
-                                            userSocket.emit(newCommunityCards, newCommunityCardsObject);
-                                        } else if (Table.stages.WINNER) {
-                                            // TODO deal with winners here
+                                            if (isContinued && Table.stages.FLOP <= table.lastStage <= Table.stages.RIVER) {
+                                                // tell the entire room cards have been dealt
+                                                userSocket.broadcast.to(room.id).emit(
+                                                    dealerDealtCommunityCards,
+                                                    table.getNewCommunityCards()
+                                                );
+                                                userSocket.emit(
+                                                    dealerDealtCommunityCards,
+                                                    table.getNewCommunityCards()
+                                                );
+                                            } else if (Table.stages.WINNER) {
+                                                // TODO deal with winners here
+                                                userSocket.broadcast.to(room.id).emit(
+                                                    playerWon,
+                                                    table.winner.playerModel.username
+                                                );
+                                                userSocket.emit(
+                                                    playerWon,
+                                                    table.winner.playerModel.username
+                                                );
+                                                table.winner.coin += table.pot;
+                                                table.reset();
+                                                userSocket.broadcast.to(room.id).emit(dealerResetGame);
+                                                userSocket.emit(dealerResetGame);
+                                            }
                                         }
                                     }
                                 }
@@ -285,11 +404,12 @@ var game = function(socketio, db) {
             /**
              * Handle disconnects
              *
-             * @listens disconnect
+             * @listens iLeft
              */
             userSocket.on(
-                disconnect,
+                iLeft,
                 function () {
+                    // TODO give money back to user!
                     console.log("Listened to a disconnect event");
                     // TODO reconnect stuff here
                     for (var i = 0; i < table.players.length; i++) {
@@ -298,6 +418,10 @@ var game = function(socketio, db) {
                             table.players.slice(i, 1);
                         }
                     }
+                    userSocket.broadcast.to(room.id).emit(
+                        playerLeft,
+                        player.playerModel.username
+                    );
                 }
             );
         }
@@ -376,7 +500,9 @@ Card.prototype.toString = function() {
  * @memberof Card
  * @returns {string} String Representation
  */
-Card.prototype.toJSON = Card.prototype.toString;
+Card.prototype.toJSON = function () {
+    return [this.rank, this.suit];
+}
 /**
  * @memberof! Card
  * @static
@@ -653,7 +779,7 @@ Player.prototype.coin = 0;
 /**
  * The player's current two-card hand
  *
- * @memberof! Hand
+ * @memberof! Player
  * @instance
  * @type {Hand}
  */
@@ -698,6 +824,9 @@ var Table = function(room) {
     this.deck.shuffle();
     this.room = room;
     this.playerBetManager = new PlayerBetManager([]);
+
+    // TODO get ante from room
+    this.ante = 0;
 };
 
 /**
@@ -725,6 +854,8 @@ Table.stages = {
  * @type {Room}
  */
 Table.prototype.room = null;
+
+Table.prototype.ante = 0;
 
 /**
  * Players of a particular table
@@ -779,6 +910,29 @@ Table.prototype.playerBetManager = null;
 Table.prototype.winner = null;
 
 /**
+ * Get the latest dealt community cards
+ */
+Table.prototype.getNewCommunityCards = function () {
+    var cardArray = [];
+    console.log(this.cards);
+    switch (this.lastStage) {
+        case Table.stages.FLOP:
+            cardArray = [this.cards.cards[0], this.cards.cards[1], this.cards.cards[2]];
+            break;
+        case Table.stages.TURN:
+            cardArray = [this.cards.cards[3]];
+            break;
+        case Table.stages.RIVER:
+            cardArray = [this.cards.cards[4]];
+            break;
+    }
+    console.log(cardArray);
+    console.log(cardArray.map(function (card) { return card.toString(); }));
+    
+    return cardArray.map(function (card) { return card.toString(); });
+};
+
+/**
  * Get the next betting player
  *
  * @memberof Table
@@ -823,7 +977,6 @@ Table.prototype.dealToPlayers = function () {
     }
 
     // and finally, save the (changed) deck object into the room
-    // TODO Uncomment
     this.deck = deck;
     this.room.save();
 };
@@ -917,6 +1070,16 @@ Table.prototype.isGameBeingPlayed = function () {
  * @param {number} amount - amount bet
  */
 Table.prototype.bet = function (player, amount) {
+    // this must be an ante!
+    if (player.coin < amount || amount < 0) {
+        throw "Player does not have enough to bet";
+    }
+    if (!player.isReady) {
+        player.isReady = true;
+        this.plot += amount;
+        player.coin -= amount;
+        return;
+    }
     this.playerBetManager.bet(player, amount);
 };
 
@@ -1008,7 +1171,7 @@ Table.prototype.continue = function () {
                 }
             );
             // TODO multiple winners
-            this.table.winner = playersSortedByHandValue[0];
+            this.winner = playersSortedByHandValue[0];
             this.reset();
             break;
     }
@@ -1037,6 +1200,35 @@ Table.prototype.reset = function () {
     } else {
         throw "player array is empty.  What should I do?";
     }
+};
+
+/**
+ * Build an array of card strings where only player's cards are truly shown
+ *
+ * @memberof Table
+ * @method
+ * @instance
+ * @param {Player} player - the player who we are censoring for
+ * @returns {String[]}
+ *
+ */
+Table.prototype.cardsCensored = function (player) {
+    var cards = [];
+    this.players.map(
+        function (curPlayer) {
+            // if the player we are censoring for is us, give us his actual cards
+            if (curPlayer === player) {
+                cards.push(player.hand.cards[0].toString());
+                cards.push(player.hand.cards[1].toString());
+                return;
+            }
+            // else, we will push the empty string to censor
+            cards.push('');
+            cards.push('');
+        }
+    );
+
+    return cards;
 };
 
 /**
