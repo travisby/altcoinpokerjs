@@ -269,7 +269,7 @@ var game = function(socketio, db) {
                                 youSatDown,
                                 {
                                     players: table.players.map(function (player) { return player.playerModel.username; }),
-                                    ante: table.ante()
+                                    ante: table.ante
                                 }
                             );
 
@@ -294,7 +294,6 @@ var game = function(socketio, db) {
                                     // only bet ante if the player hasn't, is in the table, and the game isn't started
                                     if (!table.isGameBeingPlayed() && !player.isReady && table.players.indexOf(player) !== -1) {
                                         // this must be an ante!
-                                        player.isReady = true;
                                         table.bet(player, amount);
                                         var x = table.continue();
                                         if (x) {
@@ -372,22 +371,22 @@ var game = function(socketio, db) {
                                             if (isContinued && Table.stages.FLOP <= table.lastStage <= Table.stages.RIVER) {
                                                 // tell the entire room cards have been dealt
                                                 userSocket.broadcast.to(room.id).emit(
-                                                    dealerDealtcommunityCards,
-                                                    table.communityCards()
+                                                    dealerDealtCommunityCards,
+                                                    table.getNewCommunityCards()
                                                 );
                                                 userSocket.emit(
                                                     dealerDealtCommunityCards,
-                                                    table.communityCards()
+                                                    table.getNewCommunityCards()
                                                 );
                                             } else if (Table.stages.WINNER) {
                                                 // TODO deal with winners here
                                                 userSocket.broadcast.to(room.id).emit(
                                                     playerWon,
-                                                    table.winner
+                                                    table.winner.playerModel.username
                                                 );
                                                 userSocket.emit(
                                                     playerWon,
-                                                    table.winner
+                                                    table.winner.playerModel.username
                                                 );
                                                 table.winner.coin += table.pot;
                                                 table.reset();
@@ -490,7 +489,7 @@ Card.prototype.rank = 2;
  * @returns {string} String Representation
  */
 Card.prototype.toString = function() {
-    return [this.rank, this.suit].iSatDown('');
+    return [this.rank, this.suit].join('');
 };
 
 /**
@@ -501,7 +500,9 @@ Card.prototype.toString = function() {
  * @memberof Card
  * @returns {string} String Representation
  */
-Card.prototype.toJSON = Card.prototype.toString;
+Card.prototype.toJSON = function () {
+    return [this.rank, this.suit];
+}
 /**
  * @memberof! Card
  * @static
@@ -778,7 +779,7 @@ Player.prototype.coin = 0;
 /**
  * The player's current two-card hand
  *
- * @memberof! Hand
+ * @memberof! Player
  * @instance
  * @type {Hand}
  */
@@ -823,6 +824,9 @@ var Table = function(room) {
     this.deck.shuffle();
     this.room = room;
     this.playerBetManager = new PlayerBetManager([]);
+
+    // TODO get ante from room
+    this.ante = 0;
 };
 
 /**
@@ -904,6 +908,29 @@ Table.prototype.playerBetManager = null;
  * @type {Player}
  */
 Table.prototype.winner = null;
+
+/**
+ * Get the latest dealt community cards
+ */
+Table.prototype.getNewCommunityCards = function () {
+    var cardArray = [];
+    console.log(this.cards);
+    switch (this.lastStage) {
+        case Table.stages.FLOP:
+            cardArray = [this.cards.cards[0], this.cards.cards[1], this.cards.cards[2]];
+            break;
+        case Table.stages.TURN:
+            cardArray = [this.cards.cards[3]];
+            break;
+        case Table.stages.RIVER:
+            cardArray = [this.cards.cards[4]];
+            break;
+    }
+    console.log(cardArray);
+    console.log(cardArray.map(function (card) { return card.toString(); }));
+    
+    return cardArray.map(function (card) { return card.toString(); });
+};
 
 /**
  * Get the next betting player
@@ -1044,6 +1071,16 @@ Table.prototype.isGameBeingPlayed = function () {
  * @param {number} amount - amount bet
  */
 Table.prototype.bet = function (player, amount) {
+    // this must be an ante!
+    if (player.coin < amount || amount < 0) {
+        throw "Player does not have enough to bet";
+    }
+    if (!player.isReady) {
+        player.isReady = true;
+        this.plot += amount;
+        player.coin -= amount;
+        return;
+    }
     this.playerBetManager.bet(player, amount);
 };
 
@@ -1135,7 +1172,7 @@ Table.prototype.continue = function () {
                 }
             );
             // TODO multiple winners
-            this.table.winner = playersSortedByHandValue[0];
+            this.winner = playersSortedByHandValue[0];
             this.reset();
             break;
     }
@@ -1164,6 +1201,35 @@ Table.prototype.reset = function () {
     } else {
         throw "player array is empty.  What should I do?";
     }
+};
+
+/**
+ * Build an array of card strings where only player's cards are truly shown
+ *
+ * @memberof Table
+ * @method
+ * @instance
+ * @param {Player} player - the player who we are censoring for
+ * @returns {String[]}
+ *
+ */
+Table.prototype.cardsCensored = function (player) {
+    var cards = [];
+    this.players.map(
+        function (curPlayer) {
+            // if the player we are censoring for is us, give us his actual cards
+            if (curPlayer === player) {
+                cards.push(player.hand.cards[0].toString());
+                cards.push(player.hand.cards[1].toString());
+                return;
+            }
+            // else, we will push the empty string to censor
+            cards.push('');
+            cards.push('');
+        }
+    );
+
+    return cards;
 };
 
 /**

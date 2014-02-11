@@ -57,6 +57,41 @@ var betOrRaise = new PIXI.Text('Bet/Raise');
 var cards = [];
 var animations = [];
 
+// TODO create a prototype
+var table = {};
+
+/**
+ * Do visuals for card
+ *
+ * @method
+ * @param card
+ */
+table.addCommunityCard = function (card) {
+    // TODO visually added card
+};
+
+/**
+ * Do visuals for winner
+ * 
+ * @method
+ * @param {String} player that won
+ */
+table.handleWinner = function (player) {
+    // TODO visually show who wins
+    // and add money to their account
+    // visually show taking chips?
+};
+
+/**
+ * Reset the game visually
+ *
+ * @method
+ */
+table.reset = function () {
+    // TODO remove all cards from the table
+    // and chips from bets
+};
+
 
 /**
  * Player object to send down in an event
@@ -82,9 +117,9 @@ var animations = [];
 /**
  * Event for users connecting to the socketio socket
  *
- * @event connection
+ * @event connect
  */
-var connection = 'connection';
+var connect = 'connect';
 
 /**
  * Event for ANOTHER user joining our game
@@ -325,6 +360,43 @@ Player.prototype.position = null;
  */
 Player.players = [];
 
+/**
+ * Visually removes chips from a player, and brings their counter down
+ *
+ * @propertyof Player
+ * @static
+ * @method
+ * @param {Player} player that bet
+ * @param {Number} amount the player bet
+ */
+Player.playerBet = function (player, amount) {
+    // TODO visual to show player throwing chips in, and bringing their counter down
+};
+
+/**
+ * Remove the visual arrow from player
+ *
+ * @propertyof Player}
+ * @static
+ * @method
+ * @param {Player} player to remove arrow from
+ */
+Player.removeArrow = function (player) {
+    // TODO visually remove the arrow tracking the player
+};
+
+/**
+ * Add the visual arrow to player
+ *
+ * @propertyof Player}
+ * @static
+ * @method
+ * @param {Player} player to add arrow to
+ */
+Player.addArrow = function (player) {
+    // TODO visually add an arrow tracking the player
+};
+
 var toSpan = function (string, klass) {
     return "<span class='" + klass + "'>" + string + '</span>';
 };
@@ -400,11 +472,9 @@ $(document).ready(
             playerBet,
             function (playerBet) {
                 var player = playerBet.player;
-                var bet = playerbet.amount;
+                var bet = playerBet.amount;
                 Player.playerBet(player, bet);
                 Player.removeArrow(player);
-
-                Player.subtract(player, bet);
             }
         );
 
@@ -425,8 +495,9 @@ $(document).ready(
          */
         socket.on(
             dealerDealtCommunityCards,
-            function (data) {
+            function (cards) {
                 console.log("Listened to a dealerDealtCommunityCards event");
+                console.log(cards);
                 cards.map(function (card) { table.addCommunityCard(card); });
             }
         );
@@ -466,8 +537,11 @@ $(document).ready(
          */
         socket.on(
             youSatDown,
-            function (players) {
+            function (playersAnteObj) {
+                var players = playersAnteObj.players;
+                var ante = playersAnteObj.ante;
                 players.map(function (player) { new Player(player); });
+                table.ante = ante;
             }
         );
 
@@ -511,11 +585,7 @@ $(document).ready(
         readyButton.mousedown = function () {
             console.log("Firing ready event");
             socket.emit(
-                iBet,
-                {
-                    player: mePlayer,
-                    amount: table.ante
-                }
+                iBet, table.ante
             );
         };
 
@@ -526,14 +596,7 @@ $(document).ready(
          */
         betOrRaise.mousedown = function () {
             console.log("Firing bet event");
-            socket.emit(
-                bet,
-                {
-                    amount: parseInt(prompt("How much do you want to bet?")),
-                    // not used on this end... TODO refactor and use a separate object
-                    nextPlayer: null
-                }
-            );
+            socket.emit(iBet, parseInt(prompt("How much do you want to bet?")));
         };
 
         /**
@@ -543,14 +606,7 @@ $(document).ready(
          */
         checkOrFold.mousedown = function (mouseData) {
             console.log("Firing bet event");
-            socket.emit(
-                bet,
-                {
-                    amount: 0,
-                    // not used on this end... TODO refactor and use a separate object
-                    nextPlayer: null
-                }
-            );
+            socket.emit(iBet, 0);
         };
 
         var update = function () {
