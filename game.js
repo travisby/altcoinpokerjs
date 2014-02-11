@@ -977,7 +977,6 @@ Table.prototype.dealToPlayers = function () {
     }
 
     // and finally, save the (changed) deck object into the room
-    // TODO Uncomment
     this.deck = deck;
     this.room.save();
 };

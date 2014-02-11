@@ -46,7 +46,11 @@ var stringToCardCharacter = function (cardString) {
 
 };
 
+// consts
+var BLACK = 0x000000;
+
 // graphic objects
+var stage = new PIXI.Stage(BLACK, true);
 var pokerTable = PIXI.Sprite.fromImage('/vendor/imgs/poker_table.png'); 
 var deck = new PIXI.Text($('<div />').html(stringToCardCharacter('')).text());
 var readyButton = new PIXI.Text('Ready');
@@ -58,7 +62,9 @@ var cards = [];
 var animations = [];
 
 // TODO create a prototype
-var table = {};
+var table = {
+    communityCards: []
+};
 
 /**
  * Do visuals for card
@@ -66,8 +72,14 @@ var table = {};
  * @method
  * @param card
  */
-table.addCommunityCard = function (card) {
+table.addCommunityCard = function (cardStr) {
     // TODO visually added card
+    var card = new Card(cardStr); 
+    stage.addChild(card.sprite);
+    card.sprite.scale = new PIXI.Point(2,2);
+    card.sprite.position = deck.position.clone();
+    this.communityCards.push(card);
+    card.animateTo(new PIXI.Point(200 + 80 * this.communityCards.length, 480), 400, this.communityCards.length * 40);
 };
 
 /**
@@ -80,6 +92,7 @@ table.handleWinner = function (player) {
     // TODO visually show who wins
     // and add money to their account
     // visually show taking chips?
+    alert("Winner: " + player);
 };
 
 /**
@@ -545,13 +558,10 @@ $(document).ready(
             }
         );
 
-        // consts
-        var BLACK = 0x000000;
 
         // get the canvas obj
         var $canvas = $('canvas');
         // create the root of the interactive scenegraph
-        var stage = new PIXI.Stage(BLACK, true);
         stage.addChild(pokerTable);
         stage.addChild(readyButton);
         stage.addChild(checkOrFold);
