@@ -274,6 +274,29 @@ var game = function(socketio, db) {
                             );
 
                             // Now that we have the room...
+                            /**
+                             * Handle disconnects
+                             *
+                             * @listens iLeft
+                             */
+                            userSocket.on(
+                                iLeft,
+                                function () {
+                                    // TODO give money back to user!
+                                    console.log("Listened to a disconnect event");
+                                    // TODO reconnect stuff here
+                                    for (var i = 0; i < table.players.length; i++) {
+                                        if (table.players[i].socket === userSocket) {
+                                            // remove this player
+                                            table.players.slice(i, 1);
+                                        }
+                                    }
+                                    userSocket.broadcast.to(room.id).emit(
+                                        playerLeft,
+                                        player.playerModel.username
+                                    );
+                                }
+                            );
 
                             /**
                              * Event for when a player readys-up
@@ -398,29 +421,6 @@ var game = function(socketio, db) {
                                 }
                             );
                         }
-                    );
-                }
-            );
-            /**
-             * Handle disconnects
-             *
-             * @listens iLeft
-             */
-            userSocket.on(
-                iLeft,
-                function () {
-                    // TODO give money back to user!
-                    console.log("Listened to a disconnect event");
-                    // TODO reconnect stuff here
-                    for (var i = 0; i < table.players.length; i++) {
-                        if (table.players[i].socket === userSocket) {
-                            // remove this player
-                            table.players.slice(i, 1);
-                        }
-                    }
-                    userSocket.broadcast.to(room.id).emit(
-                        playerLeft,
-                        player.playerModel.username
                     );
                 }
             );
