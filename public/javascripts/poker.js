@@ -48,38 +48,125 @@ var stringToCardCharacter = function (cardString) {
 
 // consts
 var BLACK = 0x000000;
-
-// graphic objects
-var stage = new PIXI.Stage(BLACK, true);
-var pokerTable = PIXI.Sprite.fromImage('/vendor/imgs/poker_table.png'); 
-var deck = new PIXI.Text($('<div />').html(stringToCardCharacter('')).text());
-var readyButton = new PIXI.Text('Ready');
-var checkOrFold = new PIXI.Text('Check/Fold');
-var betOrRaise = new PIXI.Text('Bet/Raise');
+var stage = new PIXI.Stage(BLACK);
 
 // objects used elsewhere
-var cards = [];
 var animations = [];
 
-// TODO create a prototype
-var table = {
-    communityCards: []
+var Table = function () {
+    this.sprite.addChild(this.deck);
+    this.sprite.addChild(this.readyButton);
+    this.sprite.addChild(this.checkOrFoldButton);
+    this.sprite.addChild(this.betOrRaiseButton);
+    this.deck.scale = new PIXI.Point(3,3);
+    this.deck.position.x = 700;
+    this.deck.position.y = 450;
+    this.readyButton.position.y = 20;
+    this.readyButton.position.x = 20;
+    this.checkOrFoldButton.position.y = 20;
+    this.checkOrFoldButton.position.x = 220;
+    this.betOrRaiseButton.position.y = 20;
+    this.betOrRaiseButton.position.x = 420;
+    this.readyButton.setInteractive(true);
+    this.checkOrFoldButton.setInteractive(true);
+    this.betOrRaiseButton.setInteractive(true);
+    this.cards = [];
+
 };
 
 /**
- * Do visuals for card
- *
- * @method
- * @param card
+ * Players array
+ * @type {Player[]}
  */
-table.addCommunityCard = function (cardStr) {
-    // TODO visually added card
-    var card = new Card(cardStr); 
-    stage.addChild(card.sprite);
+Table.prototype.players = [];
+
+Table.prototype.cards = [];
+
+/**
+ * Sprite backed item for our table
+ *
+ * @type {PIXI.Sprite}
+ */
+Table.prototype.sprite = PIXI.Sprite.fromImage('/vendor/imgs/poker_table.png');
+
+/**
+ * Deck
+ *
+ * @type {PIXI.Sprite}
+ */
+Table.prototype.deck = new PIXI.Text('DECK', {fill: 'white'}); 
+
+/**
+ * Ready / Ante / Blind button
+ *
+ * @type {PIXI.Sprite}
+ */
+Table.prototype.readyButton = new PIXI.Text(
+    'Ready',
+    {
+        fill: 'white'
+    }
+);
+
+/**
+ * Ready / Ante / Blind button
+ *
+ * @type {PIXI.Sprite}
+ */
+Table.prototype.checkOrFoldButton = new PIXI.Text(
+    'Check',
+    {
+        fill: 'white'
+    }
+);
+
+/**
+ * Bet or Raise
+ *
+ * @type {PIXI.Sprite}
+ */
+Table.prototype.betOrRaiseButton = new PIXI.Text(
+    'Bet',
+    {
+        fill: 'white'
+    }
+);
+
+
+/**
+ * Add Player
+ * @param {Player} player
+ */
+Table.prototype.addPlayer = function (player) {
+    this.players.push(player);
+    this.sprite.addChild(player.sprite);
+};
+
+/**
+ * How should we do our animation?
+ *
+ * @propertyof! Table
+ * @static
+ * @type [PIXI.Point,Number][]
+ */
+Table.animationsOnIndex = [
+    [new PIXI.Point(200, 470), 0],
+    [new PIXI.Point(260, 470), 40],
+    [new PIXI.Point(320, 470), 40],
+    [new PIXI.Point(380, 470), 0],
+    [new PIXI.Point(440, 470), 0],
+];
+
+Table.prototype.addNewCommunityCard = function (card) {
+    this.cards.push(card);
+    this.sprite.addChild(card.sprite);
     card.sprite.scale = new PIXI.Point(2,2);
-    card.sprite.position = deck.position.clone();
-    this.communityCards.push(card);
-    card.animateTo(new PIXI.Point(200 + 80 * this.communityCards.length, 480), 400, this.communityCards.length * 40);
+    card.sprite.position = this.deck.position.clone();
+
+    var point = Table.animationsOnIndex[this.cards.length -1][0];
+    var deferFrames = Table.animationsOnIndex[this.cards.length -1][1];
+    var time = 80;  // TODO come up with a better way?
+    card.animateTo(point, time, deferFrames);
 };
 
 /**
@@ -88,7 +175,7 @@ table.addCommunityCard = function (cardStr) {
  * @method
  * @param {String} player that won
  */
-table.handleWinner = function (player) {
+Table.prototype.handleWinner = function (player) {
     // TODO visually show who wins
     // and add money to their account
     // visually show taking chips?
@@ -100,7 +187,7 @@ table.handleWinner = function (player) {
  *
  * @method
  */
-table.reset = function () {
+Table.prototype.reset = function () {
     // TODO remove all cards from the table
     // and chips from bets
 };
@@ -266,7 +353,7 @@ var iLeft = 'disconnect';
  * @param {String} str - the string making a particular card up
  */
 var Card = function (str) {
-    this.sprite = new PIXI.Text($('<div />').html(stringToCardCharacter(str)).text());
+    this.sprite = new PIXI.Text(str, {fill: 'white'});
 };
 
 /**
@@ -288,14 +375,14 @@ Card.prototype.sprite = null;
  */
 Card.prototype.animateTo = function (point, frames, startIn) {
     var amount = new PIXI.Point();
-    var thisCard = this;
-    amount.x = (point.x - this.sprite.position.x) / frames;
-    amount.y = (point.y - this.sprite.position.y) / frames;
+    var sprite = this.sprite;
+    amount.x = (point.x - sprite.position.x) / frames;
+    amount.y = (point.y - sprite.position.y) / frames;
 
     var animateFunction = function (amount, times, startIn) {
         // defer
         if (startIn > 0) {
-            animations.push([animateFunction, thisCard, [amount, times, startIn - 1]]);
+            animations.push([animateFunction, this, [amount, times, startIn - 1]]);
             return;
         }
 
@@ -303,12 +390,11 @@ Card.prototype.animateTo = function (point, frames, startIn) {
         if (times < 0) {
             return;
         }
-        thisCard.sprite.position.x += amount.x;
-        thisCard.sprite.position.y += amount.y;
-        animations.push([animateFunction, thisCard, [amount, times - 1, 0]]);
+        this.position.x += amount.x;
+        this.position.y += amount.y;
+        animations.push([animateFunction, this, [amount, times - 1, 0]]);
     };
-
-    animateFunction(amount, frames, startIn);
+    animations.push([animateFunction, sprite, [amount, frames, startIn]]);
 };
 
 /**
@@ -318,7 +404,10 @@ Card.prototype.animateTo = function (point, frames, startIn) {
  * @param {UserObj} userObj
  */
 var Player = function (userObj) {
+    var username = userObj;
     Player.players.push(this);
+    this.cards = [];
+
 
     // Decide their place on the webgl board
     switch (Player.players.length) {
@@ -355,7 +444,20 @@ var Player = function (userObj) {
         default:
             throw "Something is wrong";
     }
+
+    this.sprite = new PIXI.Graphics();
+    this.sprite.beginFill(0x000000);
+    this.sprite.drawCircle(0, 0, 50);
+    this.sprite.endFill();
+    this.sprite.updateBounds();
+    this.sprite.addChild(new PIXI.Text(username, { fill: 'white'}));
+    this.sprite.position = this.position.clone();
 };
+
+/**
+ * Our sprite
+ */
+Player.prototype.sprite = null;
 
 /**
  * Where the player is sitting
@@ -363,6 +465,19 @@ var Player = function (userObj) {
  * @type {PIXI.Point}
  */
 Player.prototype.position = null;
+
+/**
+ */
+Player.prototype.cards = [];
+
+/**
+ * Add hole cards to this player
+ */
+Player.prototype.addHoleCard = function (card) {
+    this.cards.push(card);
+    this.sprite.addChild(card.sprite);
+    card.animateTo(this.position.clone(), 40, 20 * this.cards.length);
+};
 
 /**
  * Players list
@@ -417,6 +532,7 @@ var toSpan = function (string, klass) {
 $(document).ready(
     function () {
         var socket = io.connect('http://' + document.domain + ':' + location.port);
+        var table = new Table();
 
         socket.on(connect, function (data) {
             console.log("Listened to a connect event");
@@ -424,11 +540,20 @@ $(document).ready(
         });
 
         socket.on(
+            youSatDown,
+            function (players) {
+                for (var i = 0; i < players.length; i++) {
+                    table.addPlayer(new Player(players[i]));
+                }
+            }
+        );
+
+        socket.on(
             playerSatDown,
             function (username) {
                 console.log("listened to a playerJoined event");
                 console.log(username);
-                new Player(username);
+                table.addPlayer(new Player(username));
             }
         );
 
@@ -449,29 +574,16 @@ $(document).ready(
             dealerDealtHoleCards,
             function (cards) {
                 console.log("Listened to a dealerDeltHoleCards event");
+                console.log(cards);
+                console.log(table.players);
                 // deal first card
-                for (var i = 0; i < Player.players.length; i++) {
+                for (var i = 0; i < cards.length; i++) {
                     // var card = new Card(gameState.cards[i]); 
-                    var card = new Card(cards.shift()); 
-                    stage.addChild(card.sprite);
-                    card.sprite.scale = new PIXI.Point(2,2);
-                    card.sprite.position = deck.position.clone();
-                    cards.push(card);
-                    card.animateTo(Player.players[i].position, 800, i * 200);
-                }
-
-                // deal second card... slightly over in position
-                for (var i = 0; i < Player.players.length; i++) {
-                    // var card = new Card(gameState.cards[i]); 
-                    var card = new Card(cards.shift()); 
-                    var newPosition = Player.players[i].position.clone();
-                    newPosition.x += 20;
-                    newPosition.y += 20;
-                    stage.addChild(card.sprite);
-                    card.sprite.scale = new PIXI.Point(2,2);
-                    card.sprite.position = deck.position.clone();
-                    cards.push(card);
-                    card.animateTo(newPosition, 800, (i + Player.players.length) * 200);
+                    var player = table.players[i % table.players.length];
+                    var card = new Card(cards[i]); 
+                    card.sprite.scale = table.deck.scale.clone();
+                    card.sprite.position = table.deck.position.clone();
+                    player.addHoleCard(card);
                 }
             }
         );
@@ -511,7 +623,7 @@ $(document).ready(
             function (cards) {
                 console.log("Listened to a dealerDealtCommunityCards event");
                 console.log(cards);
-                cards.map(function (card) { table.addCommunityCard(card); });
+                cards.map(function (card) { table.addNewCommunityCard(new Card(card)); });
             }
         );
 
@@ -551,9 +663,10 @@ $(document).ready(
         socket.on(
             youSatDown,
             function (playersAnteObj) {
+                console.log("Listened to a youSatDown event");
                 var players = playersAnteObj.players;
                 var ante = playersAnteObj.ante;
-                players.map(function (player) { new Player(player); });
+                players.map(function (player) { table.addPlayer(new Player(player)); });
                 table.ante = ante;
             }
         );
@@ -562,11 +675,7 @@ $(document).ready(
         // get the canvas obj
         var $canvas = $('canvas');
         // create the root of the interactive scenegraph
-        stage.addChild(pokerTable);
-        stage.addChild(readyButton);
-        stage.addChild(checkOrFold);
-        stage.addChild(betOrRaise);
-        stage.addChild(deck);
+        stage.addChild(table.sprite);
 
 
         // decide between canvas and webgl for us
@@ -576,23 +685,10 @@ $(document).ready(
             $canvas[0]
         );
 
-        deck.scale = new PIXI.Point(3,3);
-        deck.position.x = 700;
-        deck.position.y = 450;
-        readyButton.position.y = 20;
-        readyButton.position.x = 20;
-        checkOrFold.position.y = 20;
-        checkOrFold.position.x = 220;
-        betOrRaise.position.y = 20;
-        betOrRaise.position.x = 420;
-        readyButton.setInteractive(true);
-        checkOrFold.setInteractive(true);
-        betOrRaise.setInteractive(true);
-
         /**
          * Ready up
          */
-        readyButton.mousedown = function () {
+        table.readyButton.mousedown = function () {
             console.log("Firing ready event");
             socket.emit(
                 iBet, table.ante
@@ -604,7 +700,7 @@ $(document).ready(
          *
          * @fires bet
          */
-        betOrRaise.mousedown = function () {
+        table.betOrRaiseButton.mousedown = function () {
             console.log("Firing bet event");
             socket.emit(iBet, parseInt(prompt("How much do you want to bet?")));
         };
@@ -614,7 +710,7 @@ $(document).ready(
          *
          * @fires bet
          */
-        checkOrFold.mousedown = function (mouseData) {
+        table.checkOrFoldButton.mousedown = function (mouseData) {
             console.log("Firing bet event");
             socket.emit(iBet, 0);
         };
