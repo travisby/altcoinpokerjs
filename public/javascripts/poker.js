@@ -58,9 +58,9 @@ var Table = function () {
     this.sprite.addChild(this.readyButton);
     this.sprite.addChild(this.checkOrFoldButton);
     this.sprite.addChild(this.betOrRaiseButton);
-    this.deck.scale = new PIXI.Point(3,3);
-    this.deck.position.x = 700;
-    this.deck.position.y = 450;
+    this.deck.scale = new PIXI.Point(2,2);
+    this.deck.position.x = 550;
+    this.deck.position.y = 213;
     this.readyButton.position.y = 20;
     this.readyButton.position.x = 20;
     this.checkOrFoldButton.position.y = 20;
@@ -94,7 +94,7 @@ Table.prototype.sprite = PIXI.Sprite.fromImage('/vendor/imgs/poker_table.png');
  *
  * @type {PIXI.Sprite}
  */
-Table.prototype.deck = new PIXI.Text('DECK', {fill: 'white'}); 
+Table.prototype.deck = new PIXI.Text($('<div />').html(stringToCardCharacter('')).text(), {fill: 'white'}); 
 
 /**
  * Ready / Ante / Blind button
@@ -353,7 +353,7 @@ var iLeft = 'disconnect';
  * @param {String} str - the string making a particular card up
  */
 var Card = function (str) {
-    this.sprite = new PIXI.Text(str, {fill: 'white'});
+    this.sprite = new PIXI.Text($('<div />').html(stringToCardCharacter(str)).text(), {fill: 'white'});
 };
 
 /**
@@ -415,31 +415,31 @@ var Player = function (userObj) {
             this.position = new PIXI.Point(100, 200);
             break;
         case 2:
-            this.position = new PIXI.Point(300, 200);
+            this.position = new PIXI.Point(250, 150);
             break;
         case 3:
-            this.position = new PIXI.Point(550, 200);
+            this.position = new PIXI.Point(425, 150);
             break;
         case 4:
-            this.position = new PIXI.Point(820, 200);
+            this.position = new PIXI.Point(550, 150);
             break;
         case 5:
-            this.position = new PIXI.Point(900, 450);
+            this.position = new PIXI.Point(700, 200);
             break;
         case 6:
-            this.position = new PIXI.Point(820, 700);
+            this.position = new PIXI.Point(700, 350);
             break;
         case 7:
-            this.position = new PIXI.Point(550, 700);
+            this.position = new PIXI.Point(550, 400);
             break;
         case 8:
-            this.position = new PIXI.Point(300, 700);
+            this.position = new PIXI.Point(425, 400);
             break;
         case 9:
-            this.position = new PIXI.Point(100, 700);
+            this.position = new PIXI.Point(250, 400);
             break;
         case 10:
-            this.position = new PIXI.Point(50, 450);
+            this.position = new PIXI.Point(100, 400);
             break;
         default:
             throw "Something is wrong";
@@ -473,10 +473,10 @@ Player.prototype.cards = [];
 /**
  * Add hole cards to this player
  */
-Player.prototype.addHoleCard = function (card) {
+Player.prototype.addHoleCard = function (card, defer) {
     this.cards.push(card);
     this.sprite.addChild(card.sprite);
-    card.animateTo(this.position.clone(), 40, 20 * this.cards.length);
+    card.animateTo(this.position.clone(), 40, defer);
 };
 
 /**
@@ -583,7 +583,7 @@ $(document).ready(
                     var card = new Card(cards[i]); 
                     card.sprite.scale = table.deck.scale.clone();
                     card.sprite.position = table.deck.position.clone();
-                    player.addHoleCard(card);
+                    player.addHoleCard(card, i * 20);
                 }
             }
         );
