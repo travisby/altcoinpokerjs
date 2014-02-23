@@ -476,7 +476,7 @@ Player.prototype.cards = [];
 Player.prototype.addHoleCard = function (card, defer) {
     this.cards.push(card);
     this.sprite.addChild(card.sprite);
-    card.animateTo(this.position.clone(), 40, defer);
+    card.animateTo(new PIXI.Point(0, 0), 40, defer);
 };
 
 /**
