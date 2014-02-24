@@ -2,6 +2,7 @@ var BLACK = '#000000';
 var WIDTH = 640;
 var HEIGHT = 480;
 var TABLE_IMAGE_NAME = 'table';
+var TABLE_IMAGE_LOCATION = '/vendor/imgs/poker_table.png';
 var READY_BUTTON_X;
 var READY_BUTTON_Y;
 var READY_BUTTON_IMAGE_NAME;
@@ -23,7 +24,7 @@ var GameState = function () {
 GameState.prototype = new Phaser.State();
 GameState.prototype.preload = function () {
     this.game.stage.backgroundColor = BLACK;
-    this.game.loadImage(TABLE_IMAGE_NAME, 'vendor/imgs/poker_table.png');
+    this.game.load.image(TABLE_IMAGE_NAME, TABLE_IMAGE_LOCATION);
 };
 GameState.prototype.create = function () {
     // connect to the server
@@ -31,13 +32,13 @@ GameState.prototype.create = function () {
     // and add the callbacks
     this.addHandlers();
     // create our table object
-    this.table = new Table(this.game.addSprite(WIDTH, HEIGHT, TABLE_IMAGE_NAME));
+    this.table = new Table(this.game.add.sprite(WIDTH, HEIGHT, TABLE_IMAGE_NAME), this.game);
     // create our buttons
     this.createButtons();
     // and hide them
     this.hideButtons();
 };
-GameState.createButtons = function () {
+GameState.prototype.createButtons = function () {
     // create the handles to the buttons locally
     this.readyButton = new Phaser.Button(this.game, READY_BUTTON_X, READY_BUTTON_Y, READY_BUTTON_IMAGE_NAME, this.clickedReady, this);
     this.checkButton = new Phaser.Button(this.game, CHECK_BUTTON_X, CHECK_BUTTON_Y, CHECK_BUTTON_IMAGE_NAME, this.clickedCheck, this);
@@ -53,12 +54,22 @@ GameState.createButtons = function () {
     this.buttonGroup.add(this.foldButton);
     this.buttonGroup.add(this.raiseButton);
 };
-GameState.hideButtons = function () {
+GameState.prototype.hideButtons = function () {
     this.buttonGroup.setAll('visible', false);
     this.buttonGroup.setAll('exists', false);
     this.buttonGroup.setAll('alive', false);
 };
-GameState.addHandlers = function () {
+GameState.prototype.hideButton = function (button) {
+    button.visible = false;
+    button.exists = false;
+    button.alive = false;
+};
+GameState.prototype.showButton = function (button) {
+    button.visible = true;
+    button.exists = true;
+    button.alive = true;
+};
+GameState.prototype.addHandlers = function () {
     var gameState = this;
 
     // add handles for socketio
@@ -67,21 +78,20 @@ GameState.addHandlers = function () {
         function () {
             console.log("Listened to a connect event");
             console.log("Firing an iSatDown event");
-            socket.emit(iSatDown, {roomID: roomID});
-            this.toast("Connected");
+            gameState.socket.emit(iSatDown, {roomID: roomID});
+            gameState.welcomeUser();
         }
     );
 
+    /**
+     * @listens youSatDown
+     */
     this.socket.on(
         youSatDown,
-        function (players) {
-            console.log("listened to a youSatDown event");
-            players.forEach(
-                function (player_obj) {
-                    gameState.table.addPlayerByPlayerObj(player_obj);
-                    gameState.toastLatestPlayer();
-                }
-            );
+        function (playersAnteObj) {
+            console.log("Listened to a youSatDown event");
+            gameState.handleJustSittingDownByPlayersAnteObj(playersAnteObj);
+            
         }
     );
 
@@ -178,24 +188,97 @@ GameState.addHandlers = function () {
             gameState.handlePlayerLeftByPlayerObj(player);
         }
     );
+};
+GameState.prototype.toast = toastr.info;
+GameState.prototype.welcomeUser = function () {
+    this.toast("Welcome!");
+    this.showButton(this.readyButton);
+};
+GameState.prototype.handleJustSittingDownByPlayersAnteObj = function (playersAnteObj) {
+    var ante = playersAnteObj.ante;
+    var players = playersAnteObj.players;
+    this.table.setAnte(ante);
+    this.table.addPlayersFromSocketIO(players);
+};
+GameState.prototype.addPlayerByPlayerObj = function (playerObj) {
+    this.table.addPlayerFromSocketIO(playerObj);
+};
+GameState.prototype.toastLatestPlayer = function () {
+    this.toast(this.table.getLastPlayer().getUsername() + " has joined");
+};
+GameState.prototype.alertPlayersNeedToAnteByPlayerObjs = function (playerObjs) {
+    this.table.clearAlerts();
+    this.table.alertPlayersByPlayerObj(playerObjs);
+};
+GameState.prototype.dealHoleCardByCardObjs = function (cardObjs) {
+    this.hideButton(this.readyButton);
+    this.table.dealHoleCardsByCardObjs(cardObjs);
+};
+GameState.prototype.handleBetForPlayerByPlayerBetObj = function (playerBet) {
+    this.table.clearAlerts();
+    this.table.doBetForPlayerByPlayerBetObj(playerBet);
+    this.alertBet();
+};
+GameState.prototype.alertBet = function () {
+    // TODO Play a fun noise on bet
+};
+GameState.prototype.alertPlayersNeedToBetByPlayerBetObj = function (playerBet) {
+    var player = playerBet.player;
+    var amount = playerBet.amount;
 
-    /**
-     * @listens youSatDown
-     */
-    this.socket.on(
-        youSatDown,
-        function (playersAnteObj) {
-            console.log("Listened to a youSatDown event");
-            gameState.handleJustSittingDownByPlayersAnteObj(playersAnteObj);
-            
+    this.table.alertPlayerByPlayerObj(player);
+
+    // if we are this player...
+    if (this.table.isThisPlayerByPlayerObj(player)) {
+        if (amount > 0) {
+            this.showButton(this.callButton);
+            this.showButton(this.foldButton);
+            this.showButton(this.raiseButton);
+        } else {
+            this.showButton(this.checkButton);
+            this.showButton(this.betButton);
+        }
+    }
+};
+GameState.prototype.dealCommunityCardsByCardObjs = function (cardsObjs) {
+    this.table.dealCommunityCardsByCardObjs(cardsObjs);
+};
+GameState.prototype.handlePlayerWinByPlayerObj = function(winner) {
+    var player = this.table.getPlayerByPlayerObj(winner);
+    this.toast(player.getUsername() + " has won");
+};
+GameState.prototype.resetGame = function () {
+    this.table.reset();
+};
+GameState.prototype.handlePlayerLeftByPlayerObj = function (playerObj) {
+    var player = this.table.getPlayerByPlayerObj(winner);
+    this.table.removePlayer(player);
+    this.toast(player.getUsername() + " has left the game");
+};
+
+var Table = function (sprite, game) {
+    this.sprite = sprite;
+    this.ante = 0;
+    this.players = new Phaser.Group(game);
+};
+Table.prototype.sprite = null;
+Table.prototype.ante = 0;
+Table.prototype.players = null;
+Table.prototype.setAnte = function (ante) {
+    this.ante = ante;
+};
+Table.prototype.addplayersFromSocketIO = function (players) {
+    var table = this;
+    players.forEach(
+        function (playerObj) {
+            var player = PlayerFactory.fromSocketIOPlayer(playerObj);
+            this.addPlayer(player);
         }
     );
 };
-
-var Table = function (sprite) {
-    this.sprite = sprite;
+Table.prototype.addPlayer = function (player) {
+    this.players.add(player);
 };
-Table.prototype.sprite = null;
 
 $(document).ready(
     function () {
